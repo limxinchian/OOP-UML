@@ -1,0 +1,130 @@
+classDiagram
+    %% ============================
+    %% Core Engine
+    %% ============================
+    class AbstractEngine {
+        +initialize()
+        +run()
+        +shutdown()
+    }
+
+    class IManager {
+        <<interface>>
+        +initialize()
+        +update(deltaTime)
+        +shutdown()
+    }
+
+    AbstractEngine --> SceneManager
+    AbstractEngine --> EntityManager
+    AbstractEngine --> CollisionManager
+    AbstractEngine --> MovementManager
+    AbstractEngine --> IOManager
+
+    IManager <|.. SceneManager
+    IManager <|.. EntityManager
+    IManager <|.. CollisionManager
+    IManager <|.. MovementManager
+    IManager <|.. IOManager
+
+    %% ============================
+    %% Scene Management
+    %% ============================
+    class SceneManager {
+        +loadScene(id)
+        +unloadScene(id)
+        +setActiveScene(id)
+        +getActiveScene() Scene
+    }
+
+    class Scene {
+        <<abstract>>
+        +update(deltaTime)
+    }
+
+    SceneManager "1" --> "*" Scene : manages
+
+    %% ============================
+    %% Entity & Component Model
+    %% ============================
+    class EntityManager {
+        +createEntity() Entity
+        +removeEntity(id)
+        +getEntities() : List
+        +updateEntities(deltaTime)
+    }
+
+    class Entity {
+        <<abstract>>
+        +id
+        +update(deltaTime)
+        +addComponent(component : Component)
+        +removeComponent(component : Component)
+        +getComponent(typeId)
+    }
+
+    EntityManager "1" --> "*" Entity : manages
+
+    class CollidableEntity
+    class NonCollidableEntity
+
+    Entity <|-- CollidableEntity
+    Entity <|-- NonCollidableEntity
+
+    class Component {
+        <<abstract>>
+        +onAttach(entity : Entity)
+        +onDetach()
+        +update(deltaTime)
+    }
+
+    Entity "1" *-- "*" Component : composed of
+
+    %% ============================
+    %% Collision Management
+    %% ============================
+    class ICollidable {
+        <<interface>>
+        +getBounds()
+    }
+
+    CollidableEntity ..|> ICollidable
+
+    class CollisionManager {
+        +register(collidable : ICollidable)
+        +unregister(collidable : ICollidable)
+        +checkCollisions()
+        +resolveCollision(a : ICollidable, b : ICollidable)
+    }
+
+    CollisionManager --> ICollidable : checks
+
+    %% ============================
+    %% Movement Management
+    %% ============================
+    class MovementManager {
+        +updateMovement(entities : List, deltaTime)
+    }
+
+    MovementManager --> Entity : updates
+
+    %% ============================
+    %% Input / Output Management
+    %% ============================
+    class IOManager {
+        +pollInput()
+        +dispatchInput()
+        +render()
+    }
+
+    class InputHandler {
+        +getInputState()
+    }
+
+    class OutputHandler {
+        +drawScene(scene : Scene)
+        +playAudio()
+    }
+
+    IOManager --> InputHandler
+    IOManager --> OutputHandler
