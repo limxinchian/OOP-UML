@@ -3,9 +3,12 @@ classDiagram
     %% Core Engine
     %% ============================
     class AbstractEngine {
-        +initialize()
-        +run()
-        +shutdown()
+        -running: boolean
+        -deltaTime: float
+        +init(): void
+        +update(dt: float) void
+        +render() void
+        +dispose() void
     }
 
     class IManager {
@@ -15,13 +18,7 @@ classDiagram
         +shutdown()
     }
 
-    AbstractEngine --> SceneManager
-    AbstractEngine --> EntityManager
-    AbstractEngine --> CollisionManager
-    AbstractEngine --> MovementManager
-    AbstractEngine --> IOManager
-
-    IManager <|.. SceneManager
+    IManager <|.. SceneManagement
     IManager <|.. EntityManager
     IManager <|.. CollisionManager
     IManager <|.. MovementManager
@@ -30,19 +27,34 @@ classDiagram
     %% ============================
     %% Scene Management
     %% ============================
+    class SceneManagement {
+        +current: Scene
+        -scenes: Map<String, Scene>
+        +addScene(name: String, scene)
+        +loadScene(name: String) void
+        +unloadScene(name: String)
+        +transitionTo(name: String)
+        +getCurrent() Scene
+    }
+
     class SceneManager {
-        +loadScene(id)
-        +unloadScene(id)
-        +setActiveScene(id)
-        +getActiveScene() Scene
+        -entities: List<Entity>
+        +create(e: Entity) void
+        +remove(e: Entity) void
+        +getAll() List(Entity)
+        +update(dt: float) void
     }
 
     class Scene {
-        <<abstract>>
-        +update(deltaTime)
+        -name: String
+        -entity Manager
+        -collision Manager
+        -io Manager
     }
 
-    SceneManager "1" --> "*" Scene : manages
+    SceneManagement "1" --> "*" SceneManager
+    Scene "1" --> "*" SceneManagement
+    SceneManagement ..|> AbstractEngine: uses
 
     %% ============================
     %% Entity & Component Model
