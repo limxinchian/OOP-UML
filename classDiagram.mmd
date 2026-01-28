@@ -2,13 +2,19 @@ classDiagram
     %% ============================
     %% Core Engine
     %% ============================
-    class AbstractEngine {
+    class GameMaster {
         -running: boolean
         -deltaTime: float
+        -shapeRenderer: ShapeRenderer
+        - entityManager: EntityManager         
+        - collisionManager: CollisionManager   
+        - movementManager: MovementManager
+
         +init(): void
         +update(dt: float) void
         +render() void
         +dispose() void
+        +run() void
     }
 
     class IManager {
@@ -95,22 +101,25 @@ classDiagram
     %% ============================
     %% Collision Management
     %% ============================
-    class ICollidable {
-        <<interface>>
-        +getBounds()
-    }
 
-    CollidableEntity ..|> ICollidable
+
+    CollidableEntity ..|> Collidable
 
     class CollisionManager {
-        +register(collidable : ICollidable)
-        +unregister(collidable : ICollidable)
-        +checkCollisions()
-        +resolveCollision(a : ICollidable, b : ICollidable)
+        collidables : List
+        + detectCollisions()
+        + checkCollision(a, b)
+        +resolveCollision(a,b)
+        + update()
     }
 
-    CollisionManager --> ICollidable : checks
+    class Collidable {
+        <<interface>>
+        +getBounds()
+        + onCollision(other) void
+    }
 
+    CollisionManager <-- Collidable :uses
     %% ============================
     %% Movement Management
     %% ============================
