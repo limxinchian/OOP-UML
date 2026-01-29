@@ -146,12 +146,12 @@ Component <|-- CollisionComponent : extends
     %% ============================
 
     class CollisionManager {
-        collidables : List
-        + detectCollisions()
-        + checkCollision(a, b)
-        +resolveCollision(a,b)
-        + update()
-    }
+    -collidables: List<CollisionComponent>
+    +detectCollisions(): void
+    +checkCollision(a: CollisionComponent, b: CollisionComponent): boolean
+    +resolveCollision(a: CollisionComponent, b: CollisionComponent): void
+    +update(deltaTime: float): void
+}
 
     CollisionManager ..> CollisionComponent : uses
     CollisionManager ..> Entity : queries
