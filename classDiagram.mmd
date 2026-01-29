@@ -66,20 +66,40 @@ classDiagram
     %% Entity & Component Model
     %% ============================
     class EntityManager {
-        +createEntity() Entity
-        +removeEntity(id)
-        +getEntities() : List
-        +updateEntities(deltaTime)
-    }
+    -entities: List<Entity>
+    
+    +initialize(): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+    +addEntity(entity: Entity): void
+    +removeEntity(entity: Entity): void
+    +getEntityCount(): int
+    +findEntitiesByType(type: Class): List<Entity>
+    +getActiveEntities(): List<Entity>
+    +clearAllEntities(): void
+}
 
-    class Entity {
-        <<abstract>>
-        +id
-        +update(deltaTime)
-        +addComponent(component : Component)
-        +removeComponent(component : Component)
-        +getComponent(typeId)
-    }
+   class Entity {
+    <<abstract>>
+    -positionX: float
+    -positionY: float
+    -width: float
+    -height: float
+    -isActive: boolean
+    -velocityX: float
+    -velocityY: float
+    
+    +update(deltaTime: float): void
+    +render(): void
+    +setPosition(x: float, y: float): void
+    +getPosition(): Vector2
+    +setVelocity(vx: float, vy: float): void
+    +getVelocity(): Vector2
+    +activate(): void
+    +deactivate(): void
+    +isEntityActive(): boolean
+    +getBounds(): Rectangle
+}
 
     EntityManager "1" --> "*" Entity : manages
 
@@ -90,11 +110,16 @@ classDiagram
     Entity <|-- NonCollidableEntity
 
     class Component {
-        <<abstract>>
-        +onAttach(entity : Entity)
-        +onDetach()
-        +update(deltaTime)
-    }
+    <<abstract>>
+    -owner: Entity
+    -enabled: boolean
+    
+    +onAttach(entity: Entity): void
+    +onDetach(): void
+    +update(deltaTime: float): void
+    +setEnabled(enabled: boolean): void
+    +isEnabled(): boolean
+}
 
     Entity "1" *-- "*" Component : composed of
 
