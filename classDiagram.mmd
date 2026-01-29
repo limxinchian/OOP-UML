@@ -167,20 +167,26 @@ Component <|-- CollisionComponent : extends
     %% ============================
     %% Input / Output Management
     %% ============================
+
     class IOManager {
-        +pollInput()
-        +dispatchInput()
-        +render()
+        -input: InputManager
+        -output: OutputManager
+        +update(deltaTime: float): void
+        +dispose(): void
     }
 
-    class InputHandler {
-        +getInputState()
+    class InputManager {
+        +isKeyPressed(key: int): boolean
+        +isKeyJustPressed(key: int): boolean
+        +getMousePosition(): Vector2
     }
 
-    class OutputHandler {
-        +drawScene(scene : Scene)
-        +playAudio()
+    class OutputManager {
+        +begin(batch: SpriteBatch): void
+        +draw(entity: Entity, batch: SpriteBatch): void
+        +end(batch: SpriteBatch): void
+        +dispose(): void
     }
 
-    IOManager --> InputHandler
-    IOManager --> OutputHandler
+    IOManager --> InputManager
+    IOManager --> OutputManager
