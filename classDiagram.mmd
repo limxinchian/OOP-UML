@@ -88,6 +88,7 @@ classDiagram
     -isActive: boolean
     -velocityX: float
     -velocityY: float
+    -components: List<Component>
     
     +update(deltaTime: float): void
     +render(): void
@@ -99,15 +100,13 @@ classDiagram
     +deactivate(): void
     +isEntityActive(): boolean
     +getBounds(): Rectangle
+    +addComponent(component: Component): void
+    +removeComponent(component: Component): void
+    +getComponent(type: Class): Component
+    +hasComponent(type: Class): boolean
 }
 
     EntityManager "1" --> "*" Entity : manages
-
-    class CollidableEntity
-    class NonCollidableEntity
-
-    Entity <|-- CollidableEntity
-    Entity <|-- NonCollidableEntity
 
     class Component {
     <<abstract>>
@@ -121,14 +120,30 @@ classDiagram
     +isEnabled(): boolean
 }
 
+class CollisionComponent {
+    -collisionLayer: int
+    -isTrigger: boolean
+    -bounds: Rectangle
+    
+    +onAttach(entity: Entity): void
+    +onDetach(): void
+    +update(deltaTime: float): void
+    +getBounds(): Rectangle
+    +onCollisionEnter(other: CollisionComponent): void
+    +onCollisionStay(other: CollisionComponent): void
+    +onCollisionExit(other: CollisionComponent): void
+    +getCollisionLayer(): int
+    +setCollisionLayer(layer: int): void
+    +canCollideWith(other: CollisionComponent): boolean
+}
+
+Component <|-- CollisionComponent : extends
+
     Entity "1" *-- "*" Component : composed of
 
     %% ============================
     %% Collision Management
     %% ============================
-
-
-    CollidableEntity ..|> Collidable
 
     class CollisionManager {
         collidables : List
@@ -138,13 +153,8 @@ classDiagram
         + update()
     }
 
-    class Collidable {
-        <<interface>>
-        +getBounds()
-        + onCollision(other) void
-    }
-
-    CollisionManager <-- Collidable :uses
+    CollisionManager ..> CollisionComponent : uses
+    CollisionManager ..> Entity : queries
     %% ============================
     %% Movement Management
     %% ============================
