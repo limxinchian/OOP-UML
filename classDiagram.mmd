@@ -146,14 +146,23 @@ Component <|-- CollisionComponent : extends
 
     CollisionManager ..> CollisionComponent : uses
     CollisionManager ..> Entity : queries
+
     %% ============================
     %% Movement Management
     %% ============================
     class MovementManager {
-        +updateMovement(entities : List, deltaTime)
+        -strategies: List<MovementStrategy>
+        +addMovementStrategy(strategy: MovementStrategy): void
+        +removeMovementStrategy(strategy: MovementStrategy): void
+        +updateMovement(entities: List<Entity>, deltaTime: float): void
     }
 
-    MovementManager --> Entity : updates
+    class MovementStrategy {
+        <<interface>>
+        +applyMovement(entity: Entity, deltaTime: float): void
+    }
+
+    MovementManager "1" *-- "*" MovementStrategy : uses
 
     %% ============================
     %% Input / Output Management
