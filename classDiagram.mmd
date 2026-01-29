@@ -66,47 +66,38 @@ classDiagram
     %% Entity & Component Model
     %% ============================
     class EntityManager {
-    -entities: List<Entity>
-    
-    +initialize(): void
-    +update(deltaTime: float): void
-    +shutdown(): void
-    +addEntity(entity: Entity): void
-    +removeEntity(entity: Entity): void
-    +getEntityCount(): int
-    +findEntitiesByType(type: Class): List<Entity>
-    +getActiveEntities(): List<Entity>
-    +clearAllEntities(): void
-}
+        -entities: List~Entity~
+        -entitiesToAdd: List~Entity~
+        -entitiesToRemove: List~Entity~
+        
+        +init(): void
+        +update(deltaTime: float): void
+        +render(batch: SpriteBatch): void
+        +addEntity(entity: Entity): void
+        +removeEntity(entity: Entity): void
+        +getEntityCount(): int
+    }
 
    class Entity {
-    <<abstract>>
-    -positionX: float
-    -positionY: float
-    -width: float
-    -height: float
-    -isActive: boolean
-    -velocityX: float
-    -velocityY: float
-    -components: List<Component>
-    
-    +update(deltaTime: float): void
-    +render(): void
-    +setPosition(x: float, y: float): void
-    +getPosition(): Vector2
-    +setVelocity(vx: float, vy: float): void
-    +getVelocity(): Vector2
-    +activate(): void
-    +deactivate(): void
-    +isEntityActive(): boolean
-    +getBounds(): Rectangle
-    +addComponent(component: Component): void
-    +removeComponent(component: Component): void
-    +getComponent(type: Class): Component
-    +hasComponent(type: Class): boolean
-}
+        <<abstract>>
+        #positionX: float
+        #positionY: float
+        #width: float
+        #height: float
+        #velocityX: float
+        #velocityY: float
+        #isActive: boolean
+        
+        +update(deltaTime: float): void
+        +render(batch: SpriteBatch): void
+        +dispose(): void
+        +setBounds(x: float, y: float, w: float, h: float): void
+        +setVelocity(vx: float, vy: float): void
+        +isActive(): boolean
+    }
 
-    EntityManager "1" --> "*" Entity : manages
+    %% Relationship: Manager owns Entity
+    EntityManager "1" *-- "*" Entity : manages
 
     class Component {
     <<abstract>>
