@@ -187,7 +187,8 @@ Scene "1" *-- "1" IOManager : owns
 
 Entity "1" *-- "*" StaticComponent : composed of
 Entity "1" *-- "*" DynamicComponent : composed of
-DynamicComponent <|-- CollisionComponent : extends
+Entity "1" *-- "0..1" CollisionComponent : composed of
+CollisionComponent "0..1" --> "1" Entity : owner
 
 CollisionManager ..> CollisionComponent : queries
 
