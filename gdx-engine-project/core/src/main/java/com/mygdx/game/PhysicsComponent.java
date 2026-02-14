@@ -10,4 +10,9 @@ public class PhysicsComponent extends Component {
         this.velocityY = velY;
         this.mass = mass;
     }
+    
+    @Override
+    public void update(float deltaTime) {
+        // Physics update handled by MovementManager
+    }
 }

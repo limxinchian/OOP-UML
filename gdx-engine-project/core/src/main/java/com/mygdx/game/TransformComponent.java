@@ -14,4 +14,9 @@ public class TransformComponent extends Component {
         this.height = h;
         this.rotation = 0.0f;
     }
+    
+    @Override
+    public void update(float deltaTime) {
+        // Transform update handled by MovementManager
+    }
 }

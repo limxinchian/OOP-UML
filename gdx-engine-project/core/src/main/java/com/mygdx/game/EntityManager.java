@@ -1,8 +1,5 @@
 package com.mygdx.game;
 
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,10 +20,11 @@ public class EntityManager implements IManager {
 
     @Override
     public void update(float deltaTime) {
-        
+        // Process removals first
         entities.removeAll(entitiesToRemove);
         entitiesToRemove.clear();
 
+        // Include additions
         entities.addAll(entitiesToAdd);
         entitiesToAdd.clear();
     }
