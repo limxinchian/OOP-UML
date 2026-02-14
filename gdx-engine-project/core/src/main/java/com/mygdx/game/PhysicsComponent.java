@@ -1,0 +1,13 @@
+package com.mygdx.game;
+
+public class PhysicsComponent extends Component {
+    public float velocityX;
+    public float velocityY;
+    public float mass;
+
+    public PhysicsComponent(float velX, float velY, float mass) {
+        this.velocityX = velX;
+        this.velocityY = velY;
+        this.mass = mass;
+    }
+}
