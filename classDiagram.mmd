@@ -5,53 +5,40 @@ config:
 classDiagram
 direction TB
 
+%% --- Core Engine Management ---
 class GameMaster {
   -running: boolean
   -deltaTime: float
   -sceneManager: SceneManager
-  -entityManager: EntityManager
   +init(): void
   +run(): void
   +dispose(): void
 }
 
 class IManager {
+  <<interface>>
   +initialize(): void
   +update(deltaTime: float): void
   +shutdown(): void
 }
 
 class SceneManager {
-  -current: Scene
+  -currentScene: Scene
   -scenes: Map~String, Scene~
   +addScene(name: String, scene: Scene): void
   +loadScene(name: String): void
   +unloadScene(name: String): void
   +transitionTo(name: String): void
-  +getCurrent(): Scene
-  +initialize(): void
-  +update(deltaTime: float): void
-  +shutdown(): void
-}
-
-class EntityManager {
-  -entities: List~Entity~
-  -entitiesToAdd: List~Entity~
-  -entitiesToRemove: List~Entity~
-  +initialize(): void
-  +update(deltaTime: float): void
-  +shutdown(): void
-  +addEntity(entity: Entity): void
-  +removeEntity(entity: Entity): void
-  +getEntityCount(): int
+  +getCurrentScene(): Scene
 }
 
 class Scene {
+  <<abstract>>
   -name: String
   #entityManager: EntityManager
-  -collisionManager: CollisionManager
-  -movementManager: MovementManager
-  -ioManager: IOManager
+  #collisionManager: CollisionManager
+  #movementManager: MovementManager
+  #ioManager: IOManager
   +onEnter(): void
   +onExit(): void
   +update(deltaTime: float): void
@@ -59,11 +46,65 @@ class Scene {
   +dispose(): void
 }
 
+%% --- Entity Component System (ECS) Core ---
+class Entity {
+  -id: UUID
+  -active: boolean
+  -components: Map~Type, Component~
+  +addComponent(component: Component): void
+  +removeComponent(type: Type): void
+  +getComponent(type: Type): Component
+  +setActive(active: boolean): void
+  +isActive(): boolean
+}
+
+class EntityManager {
+  -entities: List~Entity~
+  -entitiesToAdd: List~Entity~
+  -entitiesToRemove: List~Entity~
+  +addEntity(entity: Entity): void
+  +removeEntity(entity: Entity): void
+  +getEntityCount(): int
+  +getEntities(): List~Entity~
+}
+
+%% --- Components ---
+class Component {
+  <<abstract>>
+  #owner: Entity
+  #enabled: boolean
+  +onAttach(entity: Entity): void
+  +onDetach(): void
+  +setEnabled(enabled: boolean): void
+  +isEnabled(): boolean
+}
+
+class TransformComponent {
+  +positionX: float
+  +positionY: float
+  +width: float
+  +height: float
+  +rotation: float
+}
+
+class PhysicsComponent {
+  +velocityX: float
+  +velocityY: float
+  +mass: float
+}
+
+class CollisionComponent {
+  -collisionLayer: int
+  -trigger: boolean
+  -boundsOffset: Vector2
+  +getBounds(): Rectangle
+  +onCollisionEnter(other: CollisionComponent): void
+  +setCollisionLayer(layer: int): void
+  +canCollideWith(other: CollisionComponent): boolean
+}
+
+%% --- Managers (Systems) ---
 class CollisionManager {
-  -collidables: List~CollisionComponent~
-  +initialize(): void
-  +update(deltaTime: float): void
-  +shutdown(): void
   +detectCollisions(): void
   +checkCollision(a: CollisionComponent, b: CollisionComponent): boolean
   #handleCollision(a: CollisionComponent, b: CollisionComponent): void
@@ -71,80 +112,21 @@ class CollisionManager {
 
 class MovementManager {
   -strategies: List~MovementStrategy~
-  +initialize(): void
-  +update(deltaTime: float): void
-  +shutdown(): void
   +addMovementStrategy(strategy: MovementStrategy): void
   +removeMovementStrategy(strategy: MovementStrategy): void
-  +updateMovement(targets: List~IMoveable~, deltaTime: float): void
+  +updateMovement(deltaTime: float): void
+}
+
+class MovementStrategy {
+  <<interface>>
+  +applyMovement(transform: TransformComponent, physics: PhysicsComponent, deltaTime: float): void
 }
 
 class IOManager {
   -input: InputManager
   -output: OutputManager
-  +initialize(): void
-  +update(deltaTime: float): void
-  +shutdown(): void
   +getInput(): InputManager
   +getOutput(): OutputManager
-}
-
-class Entity {
-  #positionX: float
-  #positionY: float
-  #width: float
-  #height: float
-  #velocityX: float
-  #velocityY: float
-  #active: boolean
-  +update(deltaTime: float): void
-  +render(): void
-  +dispose(): void
-  +setBounds(x: float, y: float, width: float, height: float): void
-  +setVelocity(velocityX: float, velocityY: float): void
-  +setActive(active: boolean): void
-  +isActive(): boolean
-}
-
-class StaticComponent {
-  -owner: Entity
-  -enabled: boolean
-  +onAttach(entity: Entity): void
-  +onDetach(): void
-  +setEnabled(enabled: boolean): void
-  +isEnabled(): boolean
-}
-
-class DynamicComponent {
-  -owner: Entity
-  -enabled: boolean
-  +onAttach(entity: Entity): void
-  +onDetach(): void
-  +update(deltaTime: float): void
-  +setEnabled(enabled: boolean): void
-  +isEnabled(): boolean
-}
-
-class CollisionComponent {
-  -collisionLayer: int
-  -trigger: boolean
-  -bounds: Rectangle
-  +getBounds(): Rectangle
-  +onCollisionEnter(other: CollisionComponent): void
-  +onCollisionStay(other: CollisionComponent): void
-  +onCollisionExit(other: CollisionComponent): void
-  +getCollisionLayer(): int
-  +setCollisionLayer(layer: int): void
-  +canCollideWith(other: CollisionComponent): boolean
-}
-
-class MovementStrategy {
-  +applyMovement(target: IMoveable, deltaTime: float): void
-}
-
-class IMoveable {
-  +setVelocity(velocityX: float, velocityY: float): void
-  +isActive(): boolean
 }
 
 class InputManager {
@@ -155,20 +137,14 @@ class InputManager {
 
 class OutputManager {
   +begin(): void
-  +draw(entity: Entity): void
+  +draw(transform: TransformComponent, renderable: Component): void
   +end(): void
   +dispose(): void
 }
 
-<<interface>> IManager
-<<abstract>> Scene
-<<abstract>> Entity
-<<interface>> MovementStrategy
-<<interface>> IMoveable
+%% --- Relationships ---
 
 GameMaster "1" *-- "1" SceneManager
-GameMaster "1" *-- "1" EntityManager
-
 IManager <|.. SceneManager
 IManager <|.. EntityManager
 IManager <|.. CollisionManager
@@ -176,27 +152,24 @@ IManager <|.. MovementManager
 IManager <|.. IOManager
 
 SceneManager "1" *-- "*" Scene : owns
-SceneManager "1" --> "1" Scene : current
-GameMaster ..> SceneManager : delegates loop
+GameMaster ..> SceneManager : runs
 
-EntityManager "1" *-- "*" Entity : manages
-
+Scene "1" *-- "1" EntityManager : owns
 Scene "1" *-- "1" CollisionManager : owns
 Scene "1" *-- "1" MovementManager : owns
 Scene "1" *-- "1" IOManager : owns
 
-Entity "1" *-- "*" StaticComponent : composed of
-Entity "1" *-- "*" DynamicComponent : composed of
-Entity "1" *-- "0..1" CollisionComponent : composed of
-CollisionComponent "0..1" --> "1" Entity : owner
+EntityManager "1" *-- "*" Entity : manages
+Entity "1" *-- "*" Component : contains
 
-CollisionManager ..> CollisionComponent : queries
+Component <|-- TransformComponent
+Component <|-- PhysicsComponent
+Component <|-- CollisionComponent
 
-MovementManager "1" *-- "*" MovementStrategy : uses
-MovementManager ..> IMoveable : updates
-IMoveable <|.. Entity : implemented by
+CollisionManager ..> CollisionComponent : processes
+MovementManager ..> TransformComponent : processes
+MovementManager ..> PhysicsComponent : processes
+MovementManager "1" o-- "*" MovementStrategy : uses
 
 IOManager "1" *-- "1" InputManager
 IOManager "1" *-- "1" OutputManager
-
-Scene ..> EntityManager : uses
