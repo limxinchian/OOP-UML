@@ -97,17 +97,47 @@ class CollisionComponent {
   -collisionLayer: int
   -trigger: boolean
   -boundsOffset: Vector2
+  -transform: TransformComponent
   +getBounds(): Rectangle
   +onCollisionEnter(other: CollisionComponent): void
   +setCollisionLayer(layer: int): void
+  +getCollisionLayer(): int
   +canCollideWith(other: CollisionComponent): boolean
+  +isTrigger(): boolean
+  +setTrigger(trigger: boolean): void
+  +getBoundsOffset(): Vector2
+  +setBoundsOffset(offset: Vector2): void
+  +update(deltaTime: float): void
+}
+
+%% --- Utility Classes ---
+class Vector2 {
+  +x: float
+  +y: float
+  +Vector2()
+  +Vector2(x: float, y: float)
+  +set(x: float, y: float): void
+  +copy(): Vector2
+}
+
+class Rectangle {
+  +x: float
+  +y: float
+  +width: float
+  +height: float
+  +Rectangle(x: float, y: float, width: float, height: float)
+  +overlaps(other: Rectangle): boolean
 }
 
 %% --- Managers (Systems) ---
 class CollisionManager {
+  -collisionComponents: List~CollisionComponent~
   +detectCollisions(): void
   +checkCollision(a: CollisionComponent, b: CollisionComponent): boolean
   #handleCollision(a: CollisionComponent, b: CollisionComponent): void
+  +canCollide(a: CollisionComponent, b: CollisionComponent): boolean
+  +addCollisionComponent(component: CollisionComponent): void
+  +removeCollisionComponent(component: CollisionComponent): void
 }
 
 class MovementManager {
@@ -167,6 +197,9 @@ Component <|-- PhysicsComponent
 Component <|-- CollisionComponent
 
 CollisionManager ..> CollisionComponent : processes
+CollisionComponent ..> Rectangle : uses
+CollisionComponent ..> Vector2 : uses
+CollisionComponent ..> TransformComponent : uses
 MovementManager ..> TransformComponent : processes
 MovementManager ..> PhysicsComponent : processes
 MovementManager "1" o-- "*" MovementStrategy : uses
