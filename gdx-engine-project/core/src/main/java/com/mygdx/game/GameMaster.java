@@ -1,60 +1,70 @@
 package com.mygdx.game;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 
-public class GameMaster extends ApplicationAdapter{
+import com.mygdx.game.scene.SceneManager;
+import com.mygdx.game.scene.SceneType;
+
+import com.mygdx.game.scene.scenes.MainMenuScene;
+import com.mygdx.game.scene.scenes.InstructionsScene;
+import com.mygdx.game.scene.scenes.GameScene;
+import com.mygdx.game.scene.scenes.GameOverScene;
+import com.mygdx.game.scene.scenes.PauseScene;
+
+public class GameMaster extends ApplicationAdapter {
+
+    // Core managers
     private EntityManager entityManager;
     private MovementManager movementManager;
     private CollisionManager collisionManager;
+    private IOManager ioManager;
 
-    private Entity movingEntity;
-    private Entity stationaryEntity;
-    private boolean collisionDetected = false;
+    // Scene controller
+    private SceneManager sceneManager;
 
     @Override
     public void create() {
+
+        // Create Managers
         entityManager = new EntityManager();
         movementManager = new MovementManager(entityManager);
         collisionManager = new CollisionManager();
+        ioManager = new IOManager(null);
 
-        // Create moving entity (like before)
-        movingEntity = new Entity();
-        movingEntity.addComponent(new TransformComponent(0, 0, 50, 50));
-        movingEntity.addComponent(new PhysicsComponent(10, 0, 1));
-        movingEntity.addComponent(new CollisionComponent(1, false));
-        entityManager.addEntity(movingEntity);
-
-        // Create stationary entity at position 40 (will collide when moving entity reaches it)
-        stationaryEntity = new Entity();
-        stationaryEntity.addComponent(new TransformComponent(40, 0, 50, 50));
-        stationaryEntity.addComponent(new CollisionComponent(1, false));
-        stationaryEntity.addComponent(new PhysicsComponent(0, 0, 1));
-        entityManager.addEntity(stationaryEntity);
-
-        // Add collision components to CollisionManager
-        collisionManager.addCollisionComponent(
-            (CollisionComponent) movingEntity.getComponent(CollisionComponent.class));
-        collisionManager.addCollisionComponent(
-            (CollisionComponent) stationaryEntity.getComponent(CollisionComponent.class));
-
+        // Add movement strategy
         movementManager.addMovementStrategy(new BasicMovementStrategy());
+
+        // Scene Manager
+        sceneManager = new SceneManager();
+
+        sceneManager.registerScene(new MainMenuScene(sceneManager));
+        sceneManager.registerScene(new InstructionsScene(sceneManager));
+        sceneManager.registerScene(new PauseScene(sceneManager));
+
+        sceneManager.registerScene(
+                new GameScene(
+                        sceneManager,
+                        entityManager,
+                        movementManager,
+                        collisionManager,
+                        ioManager
+                )
+        );
+
+        sceneManager.registerScene(new GameOverScene(sceneManager));
+
+        // Start at main menu
+        sceneManager.start(SceneType.MAIN_MENU);
     }
 
     @Override
     public void render() {
         float deltaTime = Gdx.graphics.getDeltaTime();
 
-        entityManager.update(deltaTime);
-        movementManager.update(deltaTime);
-        collisionManager.update(deltaTime);
-
-        TransformComponent transform = (TransformComponent) movingEntity.getComponent(TransformComponent.class);
-
-        // Only print when collision is first detected
-        if (!collisionDetected && transform.positionX >= 40) {
-            System.out.println("COLLISION DETECTED at x: " + transform.positionX);
-            collisionDetected = true;
-        }
+        // SceneManager controls update + render
+        sceneManager.update(deltaTime);
+        sceneManager.render();
     }
 
     @Override
@@ -64,3 +74,4 @@ public class GameMaster extends ApplicationAdapter{
         collisionManager.shutdown();
     }
 }
+
