@@ -155,8 +155,13 @@ class MovementStrategy {
 class IOManager {
   -input: InputManager
   -output: OutputManager
+  -audio: AudioManager
   +getInput(): InputManager
   +getOutput(): OutputManager
+  +getAudio(): AudioManager
+  +initialize(): void
+  +update(deltaTime: float): void
+  +shutdown(): void
 }
 
 class InputManager {
@@ -169,6 +174,14 @@ class OutputManager {
   +begin(): void
   +draw(transform: TransformComponent, renderable: Component): void
   +end(): void
+  +dispose(): void
+}
+
+class AudioManager {
+  -sounds: Map~String, Sound~
+  +loadSound(id: String, path: String): void
+  +playSound(id: String): void
+  +stopSound(id: String): void
   +dispose(): void
 }
 
@@ -206,3 +219,4 @@ MovementManager "1" o-- "*" MovementStrategy : uses
 
 IOManager "1" *-- "1" InputManager
 IOManager "1" *-- "1" OutputManager
+IOManager "1" *-- "1" AudioManager
