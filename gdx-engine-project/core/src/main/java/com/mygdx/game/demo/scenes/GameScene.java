@@ -99,15 +99,15 @@ public class GameScene implements IScene<DemoSceneKey> {
         InputComponent input = new InputComponent();
         input.bindJustPressed(Input.Keys.UP, (e, dt) -> {
             PhysicsComponent p = e.getComponent(PhysicsComponent.class);
-            if (p != null) p.velocityY = jumpVelocity;
+            if (p != null) p.setVelocityY(jumpVelocity);
         });
         input.bindHold(Input.Keys.LEFT, (e, dt) -> {
             PhysicsComponent p = e.getComponent(PhysicsComponent.class);
-            if (p != null) p.velocityX = -moveSpeed;
+            if (p != null) p.setVelocityX(-moveSpeed);
         });
         input.bindHold(Input.Keys.RIGHT, (e, dt) -> {
             PhysicsComponent p = e.getComponent(PhysicsComponent.class);
-            if (p != null) p.velocityX = moveSpeed;
+            if (p != null) p.setVelocityX(moveSpeed);
         });
         bird.addComponent(input);
 
@@ -185,8 +185,8 @@ public class GameScene implements IScene<DemoSceneKey> {
         // Gravity + stop horizontal drift unless input sets it this frame
         PhysicsComponent bp = bird.getPhysics();
         if (bp != null) {
-            bp.velocityX = 0f;
-            bp.velocityY -= gravity * delta;
+            bp.setVelocityX(0f);
+            bp.setVelocityY(bp.getVelocityY() - gravity * delta);
         }
 
         recyclePipesIfNeeded();
@@ -200,7 +200,7 @@ public class GameScene implements IScene<DemoSceneKey> {
         float maxX = -Float.MAX_VALUE;
         for (Entity t : topPipes) {
             TransformComponent tt = t.getComponent(TransformComponent.class);
-            if (tt != null) maxX = Math.max(maxX, tt.positionX);
+            if (tt != null) maxX = Math.max(maxX, tt.getPositionX());
         }
 
         for (int i = 0; i < topPipes.size(); i++) {
@@ -211,7 +211,7 @@ public class GameScene implements IScene<DemoSceneKey> {
             TransformComponent bb = bottom.getComponent(TransformComponent.class);
             if (tt == null || bb == null) continue;
 
-            if (tt.positionX + tt.width < 0) {
+            if (tt.getRight() < 0f) {
                 float newX = Math.max(screenW + 120f, maxX + pipeSpacing);
 
                 float gapCenterY = screenH * 0.5f;
@@ -219,15 +219,11 @@ public class GameScene implements IScene<DemoSceneKey> {
                 float newTopY = gapCenterY + gapHeight / 2f;
                 float newTopH = screenH - newTopY;
 
-                bb.positionX = newX;
-                bb.positionY = 0;
-                bb.width = pipeWidth;
-                bb.height = newBottomH;
+                bb.setPosition(newX, 0f);
+                bb.setSize(pipeWidth, newBottomH);
 
-                tt.positionX = newX;
-                tt.positionY = newTopY;
-                tt.width = pipeWidth;
-                tt.height = newTopH;
+                tt.setPosition(newX, newTopY);
+                tt.setSize(pipeWidth, newTopH);
 
                 maxX = newX;
             }
@@ -251,10 +247,10 @@ public class GameScene implements IScene<DemoSceneKey> {
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
 
-        boolean hitLeft   = bt.positionX <= 0f;
-        boolean hitRight  = bt.positionX + bt.width >= screenW;
-        boolean hitBottom = bt.positionY <= 0f;
-        boolean hitTop    = bt.positionY + bt.height >= screenH;
+        boolean hitLeft   = bt.getPositionX() <= 0f;
+        boolean hitRight  = bt.getRight() >= screenW;
+        boolean hitBottom = bt.getPositionY() <= 0f;
+        boolean hitTop    = bt.getTop() >= screenH;
 
         if (hitLeft || hitRight || hitBottom || hitTop) {
             sceneManager.resetTo(DemoSceneKey.GAME_OVER);

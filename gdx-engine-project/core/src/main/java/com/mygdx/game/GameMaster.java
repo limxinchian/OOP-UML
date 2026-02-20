@@ -38,8 +38,9 @@ public class GameMaster extends ApplicationAdapter {
 
         sceneManager.registerScene(new GameOverScene(sceneManager));
 
-        sceneManager.start(DemoSceneKey.MAIN_MENU);
+        // Initialize engine managers FIRST, then start the first scene
         engine.initialize();
+        engine.startScene(DemoSceneKey.MAIN_MENU);
     }
 
     @Override

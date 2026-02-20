@@ -40,10 +40,10 @@ public class OutputManager {
             shapeRenderer.setColor(rc.r(), rc.g(), rc.b(), rc.a());
 
             if (rc.getShape() == RenderShape.RECTANGLE) {
-                shapeRenderer.rect(t.positionX, t.positionY, t.width, t.height);
+                shapeRenderer.rect(t.getPositionX(), t.getPositionY(), t.getWidth(), t.getHeight());
             } else if (rc.getShape() == RenderShape.CIRCLE) {
                 float radius = rc.getRadius();
-                shapeRenderer.circle(t.positionX + radius, t.positionY + radius, radius);
+                shapeRenderer.circle(t.getPositionX() + radius, t.getPositionY() + radius, radius);
             }
         }
     }

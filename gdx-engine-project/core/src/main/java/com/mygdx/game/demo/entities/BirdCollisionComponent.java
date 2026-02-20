@@ -32,15 +32,15 @@ public class BirdCollisionComponent extends CollisionComponent {
         if (getOwner() != null) {
             PhysicsComponent p = getOwner().getComponent(PhysicsComponent.class);
             if (p != null) {
-                vx = p.velocityX;
-                vy = p.velocityY;
+                vx = p.getVelocityX();
+                vy = p.getVelocityY();
             }
         }
 
-        float x = base.x;
-        float y = base.y;
-        float w = base.width;
-        float h = base.height;
+        float x = base.getX();
+        float y = base.getY();
+        float w = base.getWidth();
+        float h = base.getHeight();
 
         // Expand in movement direction + a small constant pad
         if (vx >= 0f) {

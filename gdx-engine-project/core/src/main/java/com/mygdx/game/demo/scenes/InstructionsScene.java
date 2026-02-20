@@ -16,6 +16,7 @@ public class InstructionsScene implements IScene<DemoSceneKey> {
     private SpriteBatch batch;
     private BitmapFont font;
     private GlyphLayout layout;
+    private boolean initialized = false;
 
     public InstructionsScene(SceneManager<DemoSceneKey> sceneManager) {
         this.sceneManager = sceneManager;
@@ -28,10 +29,14 @@ public class InstructionsScene implements IScene<DemoSceneKey> {
 
     @Override
     public void onEnter() {
-        batch = new SpriteBatch();
-        font = new BitmapFont();
-        font.getData().setScale(1.6f);
-        layout = new GlyphLayout();
+        // Allocate once to avoid leaking on repeated open/close.
+        if (!initialized) {
+            batch = new SpriteBatch();
+            font = new BitmapFont();
+            font.getData().setScale(1.6f);
+            layout = new GlyphLayout();
+            initialized = true;
+        }
     }
 
     @Override
@@ -48,6 +53,8 @@ public class InstructionsScene implements IScene<DemoSceneKey> {
     public void render() {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.08f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        if (batch == null || font == null || layout == null) return;
 
         batch.begin();
 
@@ -68,7 +75,15 @@ public class InstructionsScene implements IScene<DemoSceneKey> {
 
     @Override
     public void dispose() {
-        if (batch != null) batch.dispose();
-        if (font != null) font.dispose();
+        if (batch != null) {
+            batch.dispose();
+            batch = null;
+        }
+        if (font != null) {
+            font.dispose();
+            font = null;
+        }
+        layout = null;
+        initialized = false;
     }
 }

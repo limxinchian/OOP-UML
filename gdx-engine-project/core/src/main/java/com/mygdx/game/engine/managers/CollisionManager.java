@@ -79,10 +79,10 @@ public class CollisionManager implements IManager {
             Rectangle r = boundsCache.get(c);
             if (r == null) continue;
 
-            int minX = fastFloor(r.x / cellSize);
-            int maxX = fastFloor((r.x + r.width) / cellSize);
-            int minY = fastFloor(r.y / cellSize);
-            int maxY = fastFloor((r.y + r.height) / cellSize);
+            int minX = fastFloor(r.getX() / cellSize);
+            int maxX = fastFloor(r.getRight() / cellSize);
+            int minY = fastFloor(r.getY() / cellSize);
+            int maxY = fastFloor(r.getTop() / cellSize);
 
             for (int gx = minX; gx <= maxX; gx++) {
                 for (int gy = minY; gy <= maxY; gy++) {
@@ -149,15 +149,15 @@ public class CollisionManager implements IManager {
     }
 
     private static CollisionInfo computeInfo(Rectangle a, Rectangle b) {
-        float aHalfW = a.width / 2f;
-        float aHalfH = a.height / 2f;
-        float bHalfW = b.width / 2f;
-        float bHalfH = b.height / 2f;
+        float aHalfW = a.getWidth() / 2f;
+        float aHalfH = a.getHeight() / 2f;
+        float bHalfW = b.getWidth() / 2f;
+        float bHalfH = b.getHeight() / 2f;
 
-        float aCx = a.x + aHalfW;
-        float aCy = a.y + aHalfH;
-        float bCx = b.x + bHalfW;
-        float bCy = b.y + bHalfH;
+        float aCx = a.getX() + aHalfW;
+        float aCy = a.getY() + aHalfH;
+        float bCx = b.getX() + bHalfW;
+        float bCy = b.getY() + bHalfH;
 
         // dx/dy from B to A (same as your original CollisionManager logic)
         float dx = aCx - bCx;
@@ -170,9 +170,9 @@ public class CollisionManager implements IManager {
         Vector2 mtv = new Vector2(0, 0);
 
         if (overlapX < overlapY) {
-            mtv.x = (dx >= 0) ? overlapX : -overlapX;
+            mtv.setX((dx >= 0) ? overlapX : -overlapX);
         } else {
-            mtv.y = (dy >= 0) ? overlapY : -overlapY;
+            mtv.setY((dy >= 0) ? overlapY : -overlapY);
         }
 
         return new CollisionInfo(mtv, overlapX, overlapY);
@@ -195,29 +195,25 @@ public class CollisionManager implements IManager {
 
         if (!aDynamic && !bDynamic) return;
 
-        float mtvX = info.mtv.x;
-        float mtvY = info.mtv.y;
+        float mtvX = info.getMtvX();
+        float mtvY = info.getMtvY();
 
         if (aDynamic && bDynamic) {
-            ta.positionX += mtvX / 2f;
-            ta.positionY += mtvY / 2f;
-            tb.positionX -= mtvX / 2f;
-            tb.positionY -= mtvY / 2f;
+            ta.translate(mtvX / 2f, mtvY / 2f);
+            tb.translate(-mtvX / 2f, -mtvY / 2f);
         } else if (aDynamic) {
-            ta.positionX += mtvX;
-            ta.positionY += mtvY;
+            ta.translate(mtvX, mtvY);
         } else {
-            tb.positionX -= mtvX;
-            tb.positionY -= mtvY;
+            tb.translate(-mtvX, -mtvY);
         }
 
         if (aDynamic && pa != null) {
-            if (mtvX != 0) pa.velocityX = 0;
-            if (mtvY != 0) pa.velocityY = 0;
+            if (mtvX != 0f) pa.setVelocityX(0f);
+            if (mtvY != 0f) pa.setVelocityY(0f);
         }
         if (bDynamic && pb != null) {
-            if (mtvX != 0) pb.velocityX = 0;
-            if (mtvY != 0) pb.velocityY = 0;
+            if (mtvX != 0f) pb.setVelocityX(0f);
+            if (mtvY != 0f) pb.setVelocityY(0f);
         }
     }
 

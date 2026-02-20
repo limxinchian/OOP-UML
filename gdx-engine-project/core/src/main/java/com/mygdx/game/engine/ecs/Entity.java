@@ -21,15 +21,45 @@ public class Entity {
 
     public void addComponent(Component component) {
         if (component == null) throw new IllegalArgumentException("component cannot be null");
+
+        Entity currentOwner = component.getOwner();
+        if (currentOwner != null && currentOwner != this) {
+            throw new IllegalStateException("component is already attached to another entity");
+        }
+
+        Component existing = components.get(component.getClass());
+        if (existing == component) {
+            return; // same instance already attached
+        }
+
+        if (existing != null) {
+            existing.onDetach();
+        }
+
         component.onAttach(this);
         components.put(component.getClass(), component);
     }
 
     public void removeComponent(Class<? extends Component> type) {
-        if (components.containsKey(type)) {
-            components.get(type).onDetach();
-            components.remove(type);
+        if (type == null) return;
+
+        Component removed = components.remove(type);
+        if (removed != null) {
+            removed.onDetach();
         }
+    }
+
+    public void clearComponents() {
+        for (Component component : components.values()) {
+            if (component != null) {
+                component.onDetach();
+            }
+        }
+        components.clear();
+    }
+
+    public boolean hasComponent(Class<? extends Component> type) {
+        return getComponent(type) != null;
     }
 
     public <T extends Component> T getComponent(Class<T> type) {

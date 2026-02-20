@@ -16,6 +16,7 @@ public class PauseScene implements IScene<DemoSceneKey> {
     private SpriteBatch batch;
     private BitmapFont font;
     private GlyphLayout layout;
+    private boolean initialized = false;
 
     public PauseScene(SceneManager<DemoSceneKey> sceneManager) {
         this.sceneManager = sceneManager;
@@ -33,10 +34,14 @@ public class PauseScene implements IScene<DemoSceneKey> {
 
     @Override
     public void onEnter() {
-        batch = new SpriteBatch();
-        font = new BitmapFont();
-        font.getData().setScale(2f);
-        layout = new GlyphLayout();
+        // Allocate once to avoid leaking GPU resources on repeated pause/resume.
+        if (!initialized) {
+            batch = new SpriteBatch();
+            font = new BitmapFont();
+            font.getData().setScale(2f);
+            layout = new GlyphLayout();
+            initialized = true;
+        }
     }
 
     @Override
@@ -63,6 +68,8 @@ public class PauseScene implements IScene<DemoSceneKey> {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        if (batch == null || font == null || layout == null) return;
+
         batch.begin();
 
         String msg =
@@ -81,7 +88,15 @@ public class PauseScene implements IScene<DemoSceneKey> {
 
     @Override
     public void dispose() {
-        if (batch != null) batch.dispose();
-        if (font != null) font.dispose();
+        if (batch != null) {
+            batch.dispose();
+            batch = null;
+        }
+        if (font != null) {
+            font.dispose();
+            font = null;
+        }
+        layout = null;
+        initialized = false;
     }
 }

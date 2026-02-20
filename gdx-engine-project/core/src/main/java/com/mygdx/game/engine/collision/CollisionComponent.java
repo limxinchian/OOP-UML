@@ -6,12 +6,19 @@ import com.mygdx.game.engine.math.Rectangle;
 import com.mygdx.game.engine.math.Vector2;
 
 public class CollisionComponent extends Component {
+    // Bitmasks. Layer 0 means "no collision".
     private int collisionLayer;
+    private int collisionMask;
     private boolean trigger;
-    private Vector2 boundsOffset;
+    private final Vector2 boundsOffset;
 
     public CollisionComponent(int collisionLayer, boolean trigger) {
+        this(collisionLayer, ~0, trigger);
+    }
+
+    public CollisionComponent(int collisionLayer, int collisionMask, boolean trigger) {
         this.collisionLayer = collisionLayer;
+        this.collisionMask = collisionMask;
         this.trigger = trigger;
         this.boundsOffset = new Vector2(0, 0);
     }
@@ -23,10 +30,10 @@ public class CollisionComponent extends Component {
         if (transform == null) return null;
 
         return new Rectangle(
-            transform.positionX + boundsOffset.x,
-            transform.positionY + boundsOffset.y,
-            transform.width,
-            transform.height
+            transform.getPositionX() + boundsOffset.getX(),
+            transform.getPositionY() + boundsOffset.getY(),
+            transform.getWidth(),
+            transform.getHeight()
         );
     }
 
@@ -48,13 +55,28 @@ public class CollisionComponent extends Component {
         return collisionLayer;
     }
 
+    public void setCollisionMask(int mask) {
+        this.collisionMask = mask;
+    }
+
+    public int getCollisionMask() {
+        return collisionMask;
+    }
+
+    public void setCollisionFilter(int layer, int mask) {
+        this.collisionLayer = layer;
+        this.collisionMask = mask;
+    }
+
     public boolean canCollideWith(CollisionComponent other) {
         if (other == null) return false;
         if (!this.isEnabled() || !other.isEnabled()) return false;
 
-        // Simple rule (your existing behavior):
-        // layer 0 means "doesn't collide".
-        return this.collisionLayer != 0 && other.collisionLayer != 0;
+        if (this.collisionLayer == 0 || other.collisionLayer == 0) return false;
+
+        boolean thisAcceptsOther = (this.collisionMask & other.collisionLayer) != 0;
+        boolean otherAcceptsThis = (other.collisionMask & this.collisionLayer) != 0;
+        return thisAcceptsOther && otherAcceptsThis;
     }
 
     public boolean isTrigger() {
@@ -66,11 +88,19 @@ public class CollisionComponent extends Component {
     }
 
     public Vector2 getBoundsOffset() {
-        return boundsOffset;
+        return boundsOffset.copy();
     }
 
     public void setBoundsOffset(Vector2 offset) {
-        this.boundsOffset = offset;
+        if (offset == null) {
+            boundsOffset.set(0f, 0f);
+        } else {
+            boundsOffset.set(offset);
+        }
+    }
+
+    public void setBoundsOffset(float x, float y) {
+        boundsOffset.set(x, y);
     }
 
     @Override

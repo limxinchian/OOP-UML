@@ -22,6 +22,9 @@ public class EngineCore<K> {
 
     private final SceneManager<K> sceneManager;
 
+    private boolean initialized = false;
+    private boolean disposed = false;
+
     public EngineCore() {
         this.entityManager = new EntityManager();
         this.movementManager = new MovementManager(entityManager);
@@ -31,26 +34,46 @@ public class EngineCore<K> {
     }
 
     /**
-     * Initialize all engine managers. Call once after registering scenes.
+     * Initialize all engine managers. Call once before ticking/rendering.
      */
     public void initialize() {
-        ioManager.initialize();
+        ensureNotDisposed();
+
+        if (initialized) return;
+
+        // Dependency-friendly init order:
+        // 1) Entity registry
+        // 2) World systems that read/write entities
+        // 3) IO (input/output)
+        entityManager.initialize();
         movementManager.initialize();
         collisionManager.initialize();
-        entityManager.initialize();
+        ioManager.initialize();
+
+        initialized = true;
+    }
+
+    /**
+     * Optional convenience: start the first scene after initialization.
+     */
+    public void startScene(K key) {
+        ensureInitialized();
+        sceneManager.start(key);
     }
 
     /**
      * Engine update pipeline (no rendering).
      */
     public void tick(float dt) {
+        ensureInitialized();
+
         // 1) Scene pre-world update (spawning, gravity, scene switching inputs)
         sceneManager.update(dt);
 
         // 2) World managers update (only if current scene allows it)
         IScene<K> current = sceneManager.getCurrentScene();
         if (current != null && current.updatesWorld()) {
-            // Flush spawns from scene update so managers can see new entities immediately
+            // Flush scene spawns/removals first so systems see a consistent world this frame
             entityManager.update(0f);
 
             ioManager.update(dt);
@@ -66,6 +89,7 @@ public class EngineCore<K> {
      * Render current scene.
      */
     public void render() {
+        ensureInitialized();
         sceneManager.render();
     }
 
@@ -73,12 +97,34 @@ public class EngineCore<K> {
      * Shutdown/dispose everything owned by the engine.
      */
     public void dispose() {
+        if (disposed) return;
+
+        // Dispose scenes first while managers still exist (safer for future scenes).
         sceneManager.dispose();
 
+        // Reverse shutdown order (opposite of initialize)
+        ioManager.shutdown();
         collisionManager.shutdown();
         movementManager.shutdown();
         entityManager.shutdown();
-        ioManager.shutdown();
+
+        initialized = false;
+        disposed = true;
+    }
+
+    private void ensureInitialized() {
+        if (disposed) {
+            throw new IllegalStateException("EngineCore is disposed");
+        }
+        if (!initialized) {
+            throw new IllegalStateException("EngineCore not initialized. Call initialize() first.");
+        }
+    }
+
+    private void ensureNotDisposed() {
+        if (disposed) {
+            throw new IllegalStateException("EngineCore is disposed");
+        }
     }
 
     // --- Accessors (so demo code can wire scenes) ---
