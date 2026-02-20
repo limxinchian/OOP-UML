@@ -2,19 +2,22 @@ package com.mygdx.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-
-import com.mygdx.game.scene.SceneManager;
-import com.mygdx.game.scene.SceneType;
-
-import com.mygdx.game.scene.scenes.MainMenuScene;
-import com.mygdx.game.scene.scenes.InstructionsScene;
-import com.mygdx.game.scene.scenes.GameScene;
-import com.mygdx.game.scene.scenes.GameOverScene;
-import com.mygdx.game.scene.scenes.PauseScene;
+import com.mygdx.game.demo.scenes.GameOverScene;
+import com.mygdx.game.demo.scenes.GameScene;
+import com.mygdx.game.demo.scenes.InstructionsScene;
+import com.mygdx.game.demo.scenes.MainMenuScene;
+import com.mygdx.game.demo.scenes.PauseScene;
+import com.mygdx.game.engine.managers.CollisionManager;
+import com.mygdx.game.engine.managers.EntityManager;
+import com.mygdx.game.engine.managers.IOManager;
+import com.mygdx.game.engine.managers.MovementManager;
+import com.mygdx.game.engine.movement.BasicMovementStrategy;
+import com.mygdx.game.engine.scene.SceneManager;
+import com.mygdx.game.engine.scene.SceneType;
 
 public class GameMaster extends ApplicationAdapter {
 
-    // Core managers
+    // Core managers (engine-owned update loop)
     private EntityManager entityManager;
     private MovementManager movementManager;
     private CollisionManager collisionManager;
@@ -25,53 +28,69 @@ public class GameMaster extends ApplicationAdapter {
 
     @Override
     public void create() {
-
-        // Create Managers
         entityManager = new EntityManager();
         movementManager = new MovementManager(entityManager);
-        collisionManager = new CollisionManager();
-        ioManager = new IOManager(null);
+        collisionManager = new CollisionManager(entityManager);
+        ioManager = new IOManager(entityManager);
 
-        // Add movement strategy
+        // Fallback global movement strategy (entities can override with MovementComponent)
         movementManager.addMovementStrategy(new BasicMovementStrategy());
 
-        // Scene Manager
         sceneManager = new SceneManager();
-
         sceneManager.registerScene(new MainMenuScene(sceneManager));
         sceneManager.registerScene(new InstructionsScene(sceneManager));
         sceneManager.registerScene(new PauseScene(sceneManager));
 
         sceneManager.registerScene(
-                new GameScene(
-                        sceneManager,
-                        entityManager,
-                        movementManager,
-                        collisionManager,
-                        ioManager
-                )
+            new GameScene(
+                sceneManager,
+                entityManager,
+                movementManager,
+                collisionManager,
+                ioManager
+            )
         );
 
         sceneManager.registerScene(new GameOverScene(sceneManager));
-
-        // Start at main menu
         sceneManager.start(SceneType.MAIN_MENU);
+
+        ioManager.initialize();
+        movementManager.initialize();
+        collisionManager.initialize();
+        entityManager.initialize();
     }
 
     @Override
     public void render() {
-        float deltaTime = Gdx.graphics.getDeltaTime();
+        float dt = Gdx.graphics.getDeltaTime();
 
-        // SceneManager controls update + render
-        sceneManager.update(deltaTime);
+        // 1) Scene pre-world update (spawning, gravity, scene switching inputs)
+        sceneManager.update(dt);
+
+        // 2) World managers update (only if current scene allows it)
+        if (sceneManager.getCurrentScene() != null && sceneManager.getCurrentScene().updatesWorld()) {
+            // Flush spawns from scene update so managers can see new entities immediately
+            entityManager.update(0f);
+
+            ioManager.update(dt);
+            movementManager.update(dt);
+            collisionManager.update(dt);
+        }
+
+        // 3) Scene post-world update (collision/out-of-bounds checks etc.)
+        sceneManager.afterWorldUpdate(dt);
+
+        // 4) Render current scene
         sceneManager.render();
     }
 
     @Override
     public void dispose() {
-        entityManager.shutdown();
-        movementManager.shutdown();
+        sceneManager.dispose();
+
         collisionManager.shutdown();
+        movementManager.shutdown();
+        entityManager.shutdown();
+        ioManager.shutdown();
     }
 }
-
