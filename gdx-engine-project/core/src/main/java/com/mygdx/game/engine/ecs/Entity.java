@@ -20,7 +20,9 @@ public class Entity {
     }
 
     public void addComponent(Component component) {
-        if (component == null) throw new IllegalArgumentException("component cannot be null");
+        if (component == null) {
+            throw new IllegalArgumentException("component cannot be null");
+        }
 
         Entity currentOwner = component.getOwner();
         if (currentOwner != null && currentOwner != this) {
@@ -33,7 +35,7 @@ public class Entity {
         }
 
         if (existing != null) {
-            existing.onDetach();
+            existing.onDetach(); // replace safely
         }
 
         component.onAttach(this);
@@ -41,7 +43,9 @@ public class Entity {
     }
 
     public void removeComponent(Class<? extends Component> type) {
-        if (type == null) return;
+        if (type == null) {
+            return;
+        }
 
         Component removed = components.remove(type);
         if (removed != null) {
@@ -49,6 +53,7 @@ public class Entity {
         }
     }
 
+    /** Detach and remove all components (used during entity disposal/shutdown). */
     public void clearComponents() {
         for (Component component : components.values()) {
             if (component != null) {

@@ -40,6 +40,7 @@ public class EntityManager implements IManager {
         if (!entitiesToAdd.isEmpty()) {
             for (Entity entity : entitiesToAdd) {
                 if (entity == null) continue;
+
                 if (!containsEntityId(entities, entity.getId())) {
                     entities.add(entity);
                 }
@@ -50,7 +51,6 @@ public class EntityManager implements IManager {
 
     @Override
     public void shutdown() {
-        // Detach components cleanly from all known entities.
         Set<UUID> seen = new HashSet<>();
         detachAllUnique(entities, seen);
         detachAllUnique(entitiesToAdd, seen);
@@ -66,11 +66,12 @@ public class EntityManager implements IManager {
 
         UUID id = entity.getId();
 
-        // Cancel a pending removal for the same entity (same frame re-add case).
+        // Cancel pending removal if re-added before update tick
         removeById(entitiesToRemove, id);
 
+        // Prevent duplicates across live + pending lists
         if (containsEntityId(entities, id) || containsEntityId(entitiesToAdd, id)) {
-            return; // prevent duplicates
+            return;
         }
 
         entitiesToAdd.add(entity);
@@ -81,16 +82,18 @@ public class EntityManager implements IManager {
 
         UUID id = entity.getId();
 
-        // If it was queued to add but not yet active, remove immediately and clean up.
+        // Same-frame add then remove: cancel add and clean immediately
         if (removeById(entitiesToAdd, id)) {
             entity.clearComponents();
             return;
         }
 
+        // Ignore if not in live list
         if (!containsEntityId(entities, id)) {
-            return; // nothing to remove
+            return;
         }
 
+        // Queue removal once
         if (!containsEntityId(entitiesToRemove, id)) {
             entitiesToRemove.add(entity);
         }
