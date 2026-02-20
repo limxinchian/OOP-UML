@@ -33,9 +33,22 @@ public class Entity {
     }
 
     public <T extends Component> T getComponent(Class<T> type) {
-        Component c = components.get(type);
-        if (c == null) return null;
-        return type.cast(c);
+        if (type == null) return null;
+
+        // Fast path: exact type
+        Component exact = components.get(type);
+        if (exact != null) {
+            return type.cast(exact);
+        }
+
+        // Polymorphic fallback: allow querying by superclass / interface
+        for (Component c : components.values()) {
+            if (type.isInstance(c)) {
+                return type.cast(c);
+            }
+        }
+
+        return null;
     }
 
     public void setActive(boolean active) { this.active = active; }

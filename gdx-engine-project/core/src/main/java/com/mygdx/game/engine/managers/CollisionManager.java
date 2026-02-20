@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.mygdx.game.engine.collision.CollisionComponent;
 import com.mygdx.game.engine.collision.CollisionInfo;
@@ -14,6 +15,12 @@ import com.mygdx.game.engine.ecs.TransformComponent;
 import com.mygdx.game.engine.math.Rectangle;
 import com.mygdx.game.engine.math.Vector2;
 
+/**
+ * CollisionManager with simple spatial-hash broadphase for better scaling.
+ * - Detects overlaps
+ * - Fires onCollisionEnter / onCollisionExit
+ * - Resolves solid (non-trigger) collisions using MTV
+ */
 public class CollisionManager implements IManager {
 
     private final EntityManager entityManager;
@@ -21,9 +28,18 @@ public class CollisionManager implements IManager {
     // Tracks collision pairs currently active: key -> pair
     private final Map<String, Pair> activePairs = new HashMap<>();
 
+    // Broadphase tuning
+    private static final float DEFAULT_CELL_SIZE = 96f;
+    private float cellSize = DEFAULT_CELL_SIZE;
+
     public CollisionManager(EntityManager entityManager) {
         if (entityManager == null) throw new IllegalArgumentException("entityManager cannot be null");
         this.entityManager = entityManager;
+    }
+
+    public void setBroadphaseCellSize(float cellSize) {
+        if (cellSize <= 0f) throw new IllegalArgumentException("cellSize must be > 0");
+        this.cellSize = cellSize;
     }
 
     @Override
@@ -40,57 +56,91 @@ public class CollisionManager implements IManager {
     }
 
     private void detectAndResolve() {
-        // Collect colliders from current entities (no manual registration needed)
+        // Collect colliders + bounds
         List<CollisionComponent> colliders = new ArrayList<>();
+        Map<CollisionComponent, Rectangle> boundsCache = new HashMap<>();
+
         for (Entity e : entityManager.getEntities()) {
             if (!e.isActive()) continue;
+
             CollisionComponent c = e.getComponent(CollisionComponent.class);
-            if (c != null && c.isEnabled()) {
-                colliders.add(c);
+            if (c == null || !c.isEnabled()) continue;
+
+            Rectangle r = c.getBounds();
+            if (r == null) continue;
+
+            colliders.add(c);
+            boundsCache.put(c, r);
+        }
+
+        // Broadphase buckets: cell -> colliders
+        Map<Long, List<CollisionComponent>> buckets = new HashMap<>();
+        for (CollisionComponent c : colliders) {
+            Rectangle r = boundsCache.get(c);
+            if (r == null) continue;
+
+            int minX = fastFloor(r.x / cellSize);
+            int maxX = fastFloor((r.x + r.width) / cellSize);
+            int minY = fastFloor(r.y / cellSize);
+            int maxY = fastFloor((r.y + r.height) / cellSize);
+
+            for (int gx = minX; gx <= maxX; gx++) {
+                for (int gy = minY; gy <= maxY; gy++) {
+                    long key = cellKey(gx, gy);
+                    buckets.computeIfAbsent(key, k -> new ArrayList<>()).add(c);
+                }
             }
         }
 
         Map<String, Pair> newPairs = new HashMap<>();
+        HashSet<String> checkedThisFrame = new HashSet<>();
 
-        for (int i = 0; i < colliders.size(); i++) {
-            for (int j = i + 1; j < colliders.size(); j++) {
-                CollisionComponent a = colliders.get(i);
-                CollisionComponent b = colliders.get(j);
+        // Narrowphase within each bucket
+        for (List<CollisionComponent> bucket : buckets.values()) {
+            int size = bucket.size();
+            if (size < 2) continue;
 
-                if (!a.canCollideWith(b) || !b.canCollideWith(a)) continue;
+            for (int i = 0; i < size; i++) {
+                for (int j = i + 1; j < size; j++) {
+                    CollisionComponent a = bucket.get(i);
+                    CollisionComponent b = bucket.get(j);
 
-                Rectangle ra = a.getBounds();
-                Rectangle rb = b.getBounds();
-                if (ra == null || rb == null) continue;
+                    if (!a.canCollideWith(b) || !b.canCollideWith(a)) continue;
 
-                if (!ra.overlaps(rb)) continue;
+                    String key = pairKey(a, b);
+                    if (!checkedThisFrame.add(key)) continue;
 
-                String key = pairKey(a, b);
-                Pair pair = new Pair(a, b);
-                newPairs.put(key, pair);
+                    Rectangle ra = boundsCache.get(a);
+                    Rectangle rb = boundsCache.get(b);
+                    if (ra == null || rb == null) continue;
 
-                boolean isNew = !activePairs.containsKey(key);
-                if (isNew) {
-                    a.onCollisionEnter(b);
-                    b.onCollisionEnter(a);
-                }
+                    if (!ra.overlaps(rb)) continue;
 
-                // Resolution capability (engine feature):
-                // only resolve if both are NOT triggers.
-                if (!a.isTrigger() && !b.isTrigger()) {
-                    CollisionInfo info = computeInfo(ra, rb);
-                    resolve(a, b, info);
+                    newPairs.put(key, new Pair(a, b));
+
+                    boolean isNew = !activePairs.containsKey(key);
+                    if (isNew) {
+                        a.onCollisionEnter(b);
+                        b.onCollisionEnter(a);
+                    }
+
+                    // Resolve only if both are solid
+                    if (!a.isTrigger() && !b.isTrigger()) {
+                        CollisionInfo info = computeInfo(ra, rb);
+                        resolve(a, b, info);
+                    }
                 }
             }
         }
 
-        // Exits: anything that was active but not present now
-        HashSet<String> oldKeys = new HashSet<>(activePairs.keySet());
-        for (String oldKey : oldKeys) {
+        // Exit events
+        for (String oldKey : new HashSet<>(activePairs.keySet())) {
             if (!newPairs.containsKey(oldKey)) {
                 Pair oldPair = activePairs.get(oldKey);
-                oldPair.a.onCollisionExit(oldPair.b);
-                oldPair.b.onCollisionExit(oldPair.a);
+                if (oldPair != null) {
+                    oldPair.a.onCollisionExit(oldPair.b);
+                    oldPair.b.onCollisionExit(oldPair.a);
+                }
             }
         }
 
@@ -109,6 +159,7 @@ public class CollisionManager implements IManager {
         float bCx = b.x + bHalfW;
         float bCy = b.y + bHalfH;
 
+        // dx/dy from B to A (same as your original CollisionManager logic)
         float dx = aCx - bCx;
         float dy = aCy - bCy;
 
@@ -127,7 +178,7 @@ public class CollisionManager implements IManager {
         return new CollisionInfo(mtv, overlapX, overlapY);
     }
 
-    private void resolve(CollisionComponent aCol, CollisionComponent bCol, CollisionInfo info) {
+    private static void resolve(CollisionComponent aCol, CollisionComponent bCol, CollisionInfo info) {
         Entity a = aCol.getOwner();
         Entity b = bCol.getOwner();
         if (a == null || b == null) return;
@@ -142,7 +193,6 @@ public class CollisionManager implements IManager {
         boolean aDynamic = (pa != null && pa.isEnabled());
         boolean bDynamic = (pb != null && pb.isEnabled());
 
-        // If neither can move, nothing to resolve.
         if (!aDynamic && !bDynamic) return;
 
         float mtvX = info.mtv.x;
@@ -161,7 +211,6 @@ public class CollisionManager implements IManager {
             tb.positionY -= mtvY;
         }
 
-        // Stop velocity along the axis we resolved
         if (aDynamic && pa != null) {
             if (mtvX != 0) pa.velocityX = 0;
             if (mtvY != 0) pa.velocityY = 0;
@@ -172,12 +221,30 @@ public class CollisionManager implements IManager {
         }
     }
 
+    private static int fastFloor(float v) {
+        int i = (int) v;
+        return v < i ? i - 1 : i;
+    }
+
+    private static long cellKey(int x, int y) {
+        return (((long) x) << 32) ^ (y & 0xffffffffL);
+    }
+
     private static String pairKey(CollisionComponent a, CollisionComponent b) {
-        int ha = System.identityHashCode(a);
-        int hb = System.identityHashCode(b);
-        int lo = Math.min(ha, hb);
-        int hi = Math.max(ha, hb);
-        return lo + ":" + hi;
+        UUID ida = (a.getOwner() != null) ? a.getOwner().getId() : null;
+        UUID idb = (b.getOwner() != null) ? b.getOwner().getId() : null;
+
+        if (ida == null || idb == null) {
+            int ha = System.identityHashCode(a);
+            int hb = System.identityHashCode(b);
+            int lo = Math.min(ha, hb);
+            int hi = Math.max(ha, hb);
+            return lo + ":" + hi;
+        }
+
+        String sa = ida.toString();
+        String sb = idb.toString();
+        return (sa.compareTo(sb) <= 0) ? (sa + ":" + sb) : (sb + ":" + sa);
     }
 
     private static final class Pair {

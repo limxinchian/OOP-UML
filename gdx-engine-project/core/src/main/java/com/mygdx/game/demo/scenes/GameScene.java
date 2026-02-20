@@ -20,14 +20,13 @@ import com.mygdx.game.engine.movement.MovementComponent;
 import com.mygdx.game.engine.render.RenderableComponent;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
-import com.mygdx.game.engine.scene.SceneType;
 
-public class GameScene implements IScene {
+public class GameScene implements IScene<DemoSceneKey> {
 
-    private final SceneManager sceneManager;
+    private final SceneManager<DemoSceneKey> sceneManager;
     private final EntityManager entityManager;
-    private final MovementManager movementManager;     // kept for constructor compatibility + demo extensibility
-    private final CollisionManager collisionManager;   // kept for constructor compatibility
+    private final MovementManager movementManager;
+    private final CollisionManager collisionManager;
     private final IOManager ioManager;
 
     private Bird bird;
@@ -35,23 +34,23 @@ public class GameScene implements IScene {
     private final List<Entity> topPipes = new ArrayList<>();
     private final List<Entity> bottomPipes = new ArrayList<>();
 
-    // demo/game values (contextual)
+    // Demo/game values
     private float gravity = 900f;
     private float pipeVelX = -220f;
     private float gapHeight = 180f;
     private float pipeWidth = 80f;
 
-    // moved from old IOManager (contextual → demo)
+    // Demo control values
     private float jumpVelocity = 350f;
     private float moveSpeed = 200f;
 
-    // scaling demo toggle
-    private int pipePairs = 1;          // press 1 or 2
+    // Scaling demo
+    private int pipePairs = 20;      // press 1 or 2
     private float pipeSpacing = 260f;
 
     private boolean initialized = false;
 
-    public GameScene(SceneManager sceneManager,
+    public GameScene(SceneManager<DemoSceneKey> sceneManager,
                      EntityManager entityManager,
                      MovementManager movementManager,
                      CollisionManager collisionManager,
@@ -64,14 +63,14 @@ public class GameScene implements IScene {
     }
 
     @Override
-    public SceneType getType() {
-        return SceneType.GAME;
+    public DemoSceneKey getKey() {
+        return DemoSceneKey.GAME;
     }
 
     @Override
     public void onEnter() {
-        // ✅ If we are coming back from PAUSE, do NOT reset the game
-        if (initialized && sceneManager.getPreviousSceneType() == SceneType.PAUSE) {
+        // If resuming from pause (stack pop), do NOT reset the run
+        if (initialized && sceneManager.getPreviousSceneKey() == DemoSceneKey.PAUSE) {
             return;
         }
 
@@ -80,7 +79,7 @@ public class GameScene implements IScene {
     }
 
     private void initNewRun() {
-        // Reset world state for a new run
+        // Clear world state for a new run
         entityManager.shutdown();
         collisionManager.shutdown();
 
@@ -92,9 +91,11 @@ public class GameScene implements IScene {
 
         // Bird
         bird = new Bird(screenW * 0.25f, screenH * 0.5f, 20f);
+
+        // Rendering
         bird.addComponent(RenderableComponent.circle(bird.getRadius(), 1f, 1f, 0f, 1f));
 
-        // Input bindings are demo logic via Command lambdas
+        // Input
         InputComponent input = new InputComponent();
         input.bindJustPressed(Input.Keys.UP, (e, dt) -> {
             PhysicsComponent p = e.getComponent(PhysicsComponent.class);
@@ -110,7 +111,7 @@ public class GameScene implements IScene {
         });
         bird.addComponent(input);
 
-        // Optional per-entity movement strategy (shows extensibility)
+        // Per-entity movement
         bird.addComponent(new MovementComponent(new BasicMovementStrategy()));
 
         entityManager.addEntity(bird);
@@ -118,11 +119,11 @@ public class GameScene implements IScene {
         // Pipes
         float startX = screenW + 120f;
         for (int i = 0; i < pipePairs; i++) {
-            float pipeX = startX + i * pipeSpacing;
-            spawnPipePair(pipeX, screenH);
+            float x = startX + i * pipeSpacing;
+            spawnPipePair(x, screenH);
         }
 
-        // Flush entities immediately so managers see everything this frame
+        // Flush spawned entities so managers can see them immediately
         entityManager.update(0f);
 
         // Reset collision flag
@@ -161,13 +162,13 @@ public class GameScene implements IScene {
 
     @Override
     public void update(float delta) {
-        // ✅ Pause key (ESC) -> PauseScene
+        // Pause (stack overlay)
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            sceneManager.changeScene(SceneType.PAUSE);
+            sceneManager.pushScene(DemoSceneKey.PAUSE);
             return;
         }
 
-        // ✅ Scaling demo: press 1 or 2 to restart with different pipe counts
+        // Scaling demo (restart run with different counts)
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
             pipePairs = 1;
             initNewRun();
@@ -179,12 +180,15 @@ public class GameScene implements IScene {
             return;
         }
 
-        // Game rule: gravity + reset horizontal each frame (contextual demo logic)
-        PhysicsComponent bp = bird.getPhysics();
-        bp.velocityX = 0;
-        bp.velocityY -= gravity * delta;
+        if (bird == null) return;
 
-        // Respawn pipes if off-screen
+        // Gravity + stop horizontal drift unless input sets it this frame
+        PhysicsComponent bp = bird.getPhysics();
+        if (bp != null) {
+            bp.velocityX = 0f;
+            bp.velocityY -= gravity * delta;
+        }
+
         recyclePipesIfNeeded();
     }
 
@@ -192,7 +196,7 @@ public class GameScene implements IScene {
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
 
-        // Find right-most pipe X to recycle after it
+        // Find right-most pipe X
         float maxX = -Float.MAX_VALUE;
         for (Entity t : topPipes) {
             TransformComponent tt = t.getComponent(TransformComponent.class);
@@ -232,35 +236,41 @@ public class GameScene implements IScene {
 
     @Override
     public void afterWorldUpdate(float delta) {
-        // Collision -> Game Over
-        if (bird.getCollision().hasCollided()) {
-            sceneManager.changeScene(SceneType.GAME_OVER);
+        if (bird == null) return;
+
+        // 1) Collision with pipes/rectangles -> Game Over
+        if (bird.getCollision() != null && bird.getCollision().hasCollided()) {
+            sceneManager.resetTo(DemoSceneKey.GAME_OVER);
             return;
         }
 
-        // Out of screen -> Game Over
+        // 2) Out of screen on ANY side -> Game Over
         TransformComponent bt = bird.getTransform();
+        if (bt == null) return;
+
+        float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
-        if (bt.positionY <= 0 || bt.positionY + bt.height >= screenH) {
-            sceneManager.changeScene(SceneType.GAME_OVER);
+
+        boolean hitLeft   = bt.positionX <= 0f;
+        boolean hitRight  = bt.positionX + bt.width >= screenW;
+        boolean hitBottom = bt.positionY <= 0f;
+        boolean hitTop    = bt.positionY + bt.height >= screenH;
+
+        if (hitLeft || hitRight || hitBottom || hitTop) {
+            sceneManager.resetTo(DemoSceneKey.GAME_OVER);
         }
     }
 
     @Override
     public void render() {
-        // Sky blue background
         ioManager.getOutput().beginFrame(0.6f, 0.9f, 1f, 1f);
         ioManager.getOutput().renderEntities(entityManager.getEntities());
         ioManager.getOutput().endFrame();
     }
 
     @Override
-    public void onExit() {
-        // preserve state when going to PAUSE
-    }
+    public void onExit() { }
 
     @Override
-    public void dispose() {
-        // OutputManager is disposed by IOManager.shutdown()
-    }
+    public void dispose() { }
 }

@@ -1,7 +1,11 @@
 package com.mygdx.game.engine.scene;
 
-public interface IScene {
-    SceneType getType();
+/**
+ * Generic scene contract for the engine.
+ * K = scene key type (enum, string, int, etc.)
+ */
+public interface IScene<K> {
+    K getKey();
 
     void onEnter();
     void onExit();

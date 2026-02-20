@@ -14,10 +14,11 @@ public class Rectangle {
     }
 
     public boolean overlaps(Rectangle other) {
-        if (other == null) return false;
-        return x < other.x + other.width &&
-               x + width > other.x &&
-               y < other.y + other.height &&
-               y + height > other.y;
+    if (other == null) return false;
+    return x <= other.x + other.width &&
+           x + width >= other.x &&
+           y <= other.y + other.height &&
+           y + height >= other.y;
     }
+
 }

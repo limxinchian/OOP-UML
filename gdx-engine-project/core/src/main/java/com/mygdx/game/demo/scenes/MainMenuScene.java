@@ -3,6 +3,7 @@ package com.mygdx.game.demo.scenes;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -10,88 +11,89 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
-import com.mygdx.game.engine.scene.SceneType;
 
-public class MainMenuScene implements IScene {
+public class MainMenuScene implements IScene<DemoSceneKey> {
 
-    private final SceneManager sceneManager;
+    private final SceneManager<DemoSceneKey> sceneManager;
 
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
-    private BitmapFont font;
+
+    private BitmapFont titleFont;
+    private BitmapFont buttonFont;
+    private GlyphLayout layout;
 
     private Rectangle startBtn;
     private Rectangle instructionsBtn;
     private Rectangle exitBtn;
-    private BitmapFont titleFont;
 
-    private GlyphLayout layout;
+    private boolean initialized = false;
+    private int lastW = -1;
+    private int lastH = -1;
 
-    public MainMenuScene(SceneManager sceneManager) {
+    public MainMenuScene(SceneManager<DemoSceneKey> sceneManager) {
         this.sceneManager = sceneManager;
     }
 
     @Override
-    public SceneType getType() {
-        return SceneType.MAIN_MENU;
+    public DemoSceneKey getKey() {
+        return DemoSceneKey.MAIN_MENU;
     }
 
     @Override
     public void onEnter() {
-        shapeRenderer = new ShapeRenderer();
-        batch = new SpriteBatch();
-        font = new BitmapFont();
-        titleFont = new BitmapFont();
+        if (!initialized) {
+            shapeRenderer = new ShapeRenderer();
+            batch = new SpriteBatch();
+            layout = new GlyphLayout();
 
-        titleFont.getData().setScale(3f);
-        font.getData().setScale(1.5f);
+            // Cleaner than NEAREST for scaled default fonts
+            titleFont = new BitmapFont();
+            titleFont.getData().setScale(2.0f);
+            titleFont.setUseIntegerPositions(true);
+            titleFont.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
 
-        layout = new GlyphLayout();
+            buttonFont = new BitmapFont();
+            buttonFont.getData().setScale(1.2f);
+            buttonFont.setUseIntegerPositions(true);
+            buttonFont.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
 
+            initialized = true;
+        }
 
-        float screenW = Gdx.graphics.getWidth();
-        float screenH = Gdx.graphics.getHeight();
-        float btnW = 180;
-        float btnH = 70;
-        float spacing = 40;
-
-    float totalWidth = btnW * 3 + spacing * 2;
-
-    float startX = (screenW - totalWidth) / 2;
-
-    float y = screenH / 3;
-
-    startBtn = new Rectangle(startX, y, btnW, btnH);
-    instructionsBtn = new Rectangle(startX + btnW + spacing, y, btnW, btnH);
-    exitBtn = new Rectangle(startX + (btnW + spacing) * 2, y, btnW, btnH);
+        ensureLayout();
     }
 
     @Override
-    public void onExit() {
-    }
+    public void onExit() { }
 
     @Override
     public void update(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            sceneManager.changeScene(SceneType.GAME);
+        ensureLayout();
+
+        // Keyboard shortcuts
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            sceneManager.resetTo(DemoSceneKey.GAME);
+            return;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
-            sceneManager.changeScene(SceneType.INSTRUCTIONS);
+            sceneManager.changeScene(DemoSceneKey.INSTRUCTIONS);
+            return;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.app.exit();
+            return;
         }
 
-        // Mouse click detection
         if (Gdx.input.justTouched()) {
-            float mouseX = Gdx.input.getX();
-            float mouseY = Gdx.graphics.getHeight() - Gdx.input.getY();
+            float x = Gdx.input.getX();
+            float y = Gdx.graphics.getHeight() - Gdx.input.getY();
 
-            if (startBtn.contains(mouseX, mouseY)) {
-                sceneManager.changeScene(SceneType.GAME);
-            } else if (instructionsBtn.contains(mouseX, mouseY)) {
-                sceneManager.changeScene(SceneType.INSTRUCTIONS);
-            } else if (exitBtn.contains(mouseX, mouseY)) {
+            if (startBtn.contains(x, y)) {
+                sceneManager.resetTo(DemoSceneKey.GAME);
+            } else if (instructionsBtn.contains(x, y)) {
+                sceneManager.changeScene(DemoSceneKey.INSTRUCTIONS);
+            } else if (exitBtn.contains(x, y)) {
                 Gdx.app.exit();
             }
         }
@@ -99,53 +101,117 @@ public class MainMenuScene implements IScene {
 
     @Override
     public void render() {
-    // Green background
-    Gdx.gl.glClearColor(0f, 1f, 0f, 1f);
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        ensureLayout();
 
-    // Draw buttons (red rectangles)
-    shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-    shapeRenderer.setColor(1f, 0f, 0f, 1f);
-    shapeRenderer.rect(startBtn.x, startBtn.y, startBtn.width, startBtn.height);
-    shapeRenderer.rect(instructionsBtn.x, instructionsBtn.y, instructionsBtn.width, instructionsBtn.height);
-    shapeRenderer.rect(exitBtn.x, exitBtn.y, exitBtn.width, exitBtn.height);
-    shapeRenderer.end();
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
 
-    // Draw text
-    batch.begin();
+        float mx = Gdx.input.getX();
+        float my = h - Gdx.input.getY();
 
-    // Center Title
-    layout.setText(titleFont, "Welcome to our game!");
-    float titleX = (Gdx.graphics.getWidth() - layout.width) / 2f;
-    float titleY = Gdx.graphics.getHeight() * 0.7f;
-    titleFont.draw(batch, layout, titleX, titleY);
+        boolean hoverStart = startBtn.contains(mx, my);
+        boolean hoverInstr = instructionsBtn.contains(mx, my);
+        boolean hoverExit = exitBtn.contains(mx, my);
 
-    // Center Start
-    layout.setText(font, "Start");
-    float startTextX = startBtn.x + (startBtn.width - layout.width) / 2f;
-    float startTextY = startBtn.y + (startBtn.height + layout.height) / 2f;
-    font.draw(batch, layout, startTextX, startTextY);
+        // Background
+        Gdx.gl.glClearColor(0.05f, 0.08f, 0.12f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-    // Center Instructions
-    layout.setText(font, "Instructions");
-    float instrTextX = instructionsBtn.x + (instructionsBtn.width - layout.width) / 2f;
-    float instrTextY = instructionsBtn.y + (instructionsBtn.height + layout.height) / 2f;
-    font.draw(batch, layout, instrTextX, instrTextY);
+        // Buttons (filled)
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        drawButtonFill(startBtn, hoverStart);
+        drawButtonFill(instructionsBtn, hoverInstr);
+        drawButtonFill(exitBtn, hoverExit);
+        shapeRenderer.end();
 
-    // Center Exit
-    layout.setText(font, "Exit");
-    float exitTextX = exitBtn.x + (exitBtn.width - layout.width) / 2f;
-    float exitTextY = exitBtn.y + (exitBtn.height + layout.height) / 2f;
-    font.draw(batch, layout, exitTextX, exitTextY);
+        // Buttons (outline)
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        drawButtonOutline(startBtn, hoverStart);
+        drawButtonOutline(instructionsBtn, hoverInstr);
+        drawButtonOutline(exitBtn, hoverExit);
+        shapeRenderer.end();
 
-    batch.end();
+        batch.begin();
+
+        // --- Title: compute Y so it NEVER overlaps buttons ---
+        layout.setText(titleFont, "Flappy Demo");
+
+        float minTitleY = startBtn.y + startBtn.height + layout.height + 26f; // always above button group
+        float desiredTitleY = h - 70f;                                        // near top
+        float titleY = Math.max(minTitleY, desiredTitleY);
+
+        float titleX = (w - layout.width) / 2f;
+        // round for stable rendering
+        titleX = Math.round(titleX);
+        titleY = Math.round(titleY);
+
+        // Small shadow for readability (still crisp because integer positions)
+        titleFont.setColor(0f, 0f, 0f, 0.35f);
+        titleFont.draw(batch, layout, titleX + 2, titleY - 2);
+        titleFont.setColor(1f, 1f, 1f, 1f);
+        titleFont.draw(batch, layout, titleX, titleY);
+
+        // Button labels (centered)
+        drawCenteredLabel("Start (Enter)", startBtn);
+        drawCenteredLabel("Instructions (I)", instructionsBtn);
+        drawCenteredLabel("Exit (Esc)", exitBtn);
+
+        batch.end();
+    }
+
+    private void ensureLayout() {
+        int w = Gdx.graphics.getWidth();
+        int h = Gdx.graphics.getHeight();
+        if (w == lastW && h == lastH && startBtn != null) return;
+
+        lastW = w;
+        lastH = h;
+
+        float btnW = Math.min(360f, w * 0.60f);
+        float btnH = 64f;
+        float gap = 18f;
+
+        float groupHeight = 3f * btnH + 2f * gap;
+        float groupTopY = (h * 0.55f) + groupHeight / 2f; // slightly above center
+
+        float centerX = w / 2f;
+
+        float y0 = groupTopY - btnH; // top button Y
+        startBtn = new Rectangle(centerX - btnW / 2f, y0, btnW, btnH);
+        instructionsBtn = new Rectangle(centerX - btnW / 2f, y0 - (btnH + gap), btnW, btnH);
+        exitBtn = new Rectangle(centerX - btnW / 2f, y0 - 2f * (btnH + gap), btnW, btnH);
+    }
+
+    private void drawButtonFill(Rectangle r, boolean hovered) {
+        if (hovered) shapeRenderer.setColor(0.92f, 0.92f, 0.92f, 1f);
+        else shapeRenderer.setColor(0.85f, 0.85f, 0.85f, 1f);
+
+        shapeRenderer.rect(Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height));
+    }
+
+    private void drawButtonOutline(Rectangle r, boolean hovered) {
+        if (hovered) shapeRenderer.setColor(0.25f, 0.75f, 1f, 1f);
+        else shapeRenderer.setColor(0.10f, 0.10f, 0.10f, 1f);
+
+        shapeRenderer.rect(Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height));
+    }
+
+    private void drawCenteredLabel(String text, Rectangle btn) {
+        layout.setText(buttonFont, text);
+        float x = Math.round(btn.x + (btn.width - layout.width) / 2f);
+        float y = Math.round(btn.y + (btn.height + layout.height) / 2f);
+
+        // dark label on light button
+        buttonFont.setColor(0.10f, 0.10f, 0.10f, 1f);
+        buttonFont.draw(batch, layout, x, y);
+        buttonFont.setColor(1f, 1f, 1f, 1f);
     }
 
     @Override
     public void dispose() {
         if (shapeRenderer != null) shapeRenderer.dispose();
         if (batch != null) batch.dispose();
-        if (font != null) font.dispose();
+        if (titleFont != null) titleFont.dispose();
+        if (buttonFont != null) buttonFont.dispose();
     }
 }
-

@@ -8,28 +8,27 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
-import com.mygdx.game.engine.scene.SceneType;
 
-public class PauseScene implements IScene {
+public class PauseScene implements IScene<DemoSceneKey> {
 
-    private final SceneManager sceneManager;
+    private final SceneManager<DemoSceneKey> sceneManager;
 
     private SpriteBatch batch;
     private BitmapFont font;
     private GlyphLayout layout;
 
-    public PauseScene(SceneManager sceneManager) {
+    public PauseScene(SceneManager<DemoSceneKey> sceneManager) {
         this.sceneManager = sceneManager;
     }
 
     @Override
-    public SceneType getType() {
-        return SceneType.PAUSE;
+    public DemoSceneKey getKey() {
+        return DemoSceneKey.PAUSE;
     }
 
     @Override
     public boolean updatesWorld() {
-        return false; // ✅ freeze entity/movement/collision/input managers
+        return false; // freeze entity/movement/collision/input managers
     }
 
     @Override
@@ -45,32 +44,37 @@ public class PauseScene implements IScene {
 
     @Override
     public void update(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            sceneManager.changeScene(SceneType.GAME);
+
+        // Resume
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            sceneManager.popScene();
+            return;
         }
+
+        // Back to menu (hard reset navigation)
         if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
-            sceneManager.changeScene(SceneType.MAIN_MENU);
+            sceneManager.resetTo(DemoSceneKey.MAIN_MENU);
         }
     }
 
     @Override
     public void render() {
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        float screenW = Gdx.graphics.getWidth();
-        float screenH = Gdx.graphics.getHeight();
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         batch.begin();
 
-        layout.setText(font, "GAME PAUSED");
-        font.draw(batch, layout, (screenW - layout.width) / 2f, screenH / 2f + 80);
+        String msg =
+            "PAUSED\n\n" +
+            "Press ESC to Resume\n" +
+            "Press M for Main Menu";
 
-        layout.setText(font, "Press R to Resume");
-        font.draw(batch, layout, (screenW - layout.width) / 2f, screenH / 2f);
+        layout.setText(font, msg);
 
-        layout.setText(font, "Press M for Main Menu");
-        font.draw(batch, layout, (screenW - layout.width) / 2f, screenH / 2f - 80);
+        font.draw(batch, layout,
+            (Gdx.graphics.getWidth() - layout.width) / 2f,
+            (Gdx.graphics.getHeight() + layout.height) / 2f);
 
         batch.end();
     }
