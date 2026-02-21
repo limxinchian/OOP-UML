@@ -12,5 +12,8 @@ public abstract class Component {
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public boolean isEnabled() { return enabled; }
 
-    public abstract void update(float deltaTime);
+    public void update(float deltaTime) {
+    // Default no-op: component updates are manager-driven.
+    // Subclasses may override if self-update logic is needed.
+}
 }
