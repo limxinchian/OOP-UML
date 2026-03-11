@@ -2,32 +2,32 @@ package com.mygdx.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.mygdx.game.demo.scenes.DemoSceneKey;
-import com.mygdx.game.demo.scenes.GameOverScene;
-import com.mygdx.game.demo.scenes.GameScene;
-import com.mygdx.game.demo.scenes.InstructionsScene;
-import com.mygdx.game.demo.scenes.MainMenuScene;
-import com.mygdx.game.demo.scenes.PauseScene;
+import com.mygdx.game.crossylane.scenes.CrossyLaneSceneKey;
+import com.mygdx.game.crossylane.scenes.GameplayScene;
+import com.mygdx.game.crossylane.scenes.InstructionScene;
+import com.mygdx.game.crossylane.scenes.MainMenuScene;
+import com.mygdx.game.crossylane.scenes.ResultScene;
+import com.mygdx.game.crossylane.scenes.PauseScene;
 import com.mygdx.game.engine.core.EngineCore;
 import com.mygdx.game.engine.scene.SceneManager;
 
 public class GameMaster extends ApplicationAdapter {
 
-    private EngineCore<DemoSceneKey> engine;
+    private EngineCore<CrossyLaneSceneKey> engine;
 
     @Override
     public void create() {
         engine = new EngineCore<>();
 
         // Wire scenes to engine-owned managers
-        SceneManager<DemoSceneKey> sceneManager = engine.getSceneManager();
+        SceneManager<CrossyLaneSceneKey> sceneManager = engine.getSceneManager();
 
         sceneManager.registerScene(new MainMenuScene(sceneManager));
-        sceneManager.registerScene(new InstructionsScene(sceneManager));
+        sceneManager.registerScene(new InstructionScene(sceneManager));
         sceneManager.registerScene(new PauseScene(sceneManager));
 
         sceneManager.registerScene(
-            new GameScene(
+            new GameplayScene(
                 sceneManager,
                 engine.getEntityManager(),
                 engine.getMovementManager(),
@@ -36,11 +36,11 @@ public class GameMaster extends ApplicationAdapter {
             )
         );
 
-        sceneManager.registerScene(new GameOverScene(sceneManager));
+        sceneManager.registerScene(new ResultScene(sceneManager));
 
         // Initialize engine managers FIRST, then start the first scene
         engine.initialize();
-        engine.startScene(DemoSceneKey.MAIN_MENU);
+        engine.startScene(CrossyLaneSceneKey.GAMEPLAY);
     }
 
     @Override
