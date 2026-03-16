@@ -22,8 +22,8 @@ public class GameMaster extends ApplicationAdapter {
         // Wire scenes to engine-owned managers
         SceneManager<CrossyLaneSceneKey> sceneManager = engine.getSceneManager();
 
-        sceneManager.registerScene(new MainMenuScene(sceneManager));
-        sceneManager.registerScene(new InstructionScene(sceneManager));
+        sceneManager.registerScene(new MainMenuScene(sceneManager, engine.getIoManager()));
+        sceneManager.registerScene(new InstructionScene(sceneManager, engine.getIoManager()));
         sceneManager.registerScene(new PauseScene(sceneManager));
 
         sceneManager.registerScene(
