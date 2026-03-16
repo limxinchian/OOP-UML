@@ -17,6 +17,11 @@ import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
 public class GameplayScene implements IScene<CrossyLaneSceneKey> {
+    private static final float HUD_LEFT_X = 24f;
+    private static final float HUD_RIGHT_X = 560f;
+    private static final float HUD_TOP_Y = 576f;
+    private static final float HUD_LINE_GAP = 28f;
+
     private final SceneManager<CrossyLaneSceneKey> sceneManager;
     private final EntityManager entityManager;
     private final MovementManager movementManager;
@@ -24,6 +29,9 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private final IOManager ioManager;
 
     private final List<CarEntity> cars = new ArrayList<>();
+    private int displayedScore = 0;
+    private int displayedLives = 3;
+    private int displayedLevel = 1;
 
     private static final float WORLD_WIDTH = 800f;
     private static final float WORLD_HEIGHT = 600f;
@@ -104,6 +112,23 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         ioManager.getOutput().beginFrame(0.2f, 0.6f, 0.2f, 1f);
         ioManager.getOutput().renderEntities(entityManager.getEntities());
         ioManager.getOutput().endFrame();
+        ioManager.getOutput().beginTextOverlay();
+        renderHudOverlay();
+        ioManager.getOutput().endTextOverlay();
+    }
+
+    private void renderHudOverlay() {
+        ioManager.getOutput().drawText("MENU: ESC", HUD_LEFT_X, HUD_TOP_Y);
+        ioManager.getOutput().drawText("LEVEL: " + displayedLevel, HUD_LEFT_X, HUD_TOP_Y - HUD_LINE_GAP);
+
+        ioManager.getOutput().drawText("SCORE: " + displayedScore, 250f, HUD_TOP_Y);
+        ioManager.getOutput().drawText("LIVES: " + displayedLives, 250f, HUD_TOP_Y - HUD_LINE_GAP);
+
+        ioManager.getOutput().drawText("GOAL", HUD_RIGHT_X, HUD_TOP_Y);
+        ioManager.getOutput().drawText("Reach the safe zone to score", HUD_RIGHT_X - 120f, HUD_TOP_Y - HUD_LINE_GAP);
+
+        ioManager.getOutput().drawText("Arrow keys / WASD to move", 24f, 48f);
+        ioManager.getOutput().drawText("Avoid cars and cross lane by lane", 24f, 24f);
     }
 
     @Override

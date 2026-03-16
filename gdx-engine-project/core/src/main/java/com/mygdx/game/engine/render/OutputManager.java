@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
@@ -15,10 +17,18 @@ import com.mygdx.game.engine.ecs.TransformComponent;
 public class OutputManager {
 
     private ShapeRenderer shapeRenderer;
+    private SpriteBatch spriteBatch;
+    private BitmapFont font;
 
     public void initialize() {
         if (shapeRenderer == null) {
             shapeRenderer = new ShapeRenderer();
+        }
+        if (spriteBatch == null) {
+            spriteBatch = new SpriteBatch();
+        }
+        if (font == null) {
+            font = new BitmapFont();
         }
     }
 
@@ -52,10 +62,30 @@ public class OutputManager {
         shapeRenderer.end();
     }
 
+    public void beginTextOverlay() {
+        spriteBatch.begin();
+    }
+
+    public void drawText(String text, float x, float y) {
+        font.draw(spriteBatch, text, x, y);
+    }
+
+    public void endTextOverlay() {
+        spriteBatch.end();
+    }
+
     public void dispose() {
         if (shapeRenderer != null) {
             shapeRenderer.dispose();
             shapeRenderer = null;
+        }
+        if (spriteBatch != null) {
+            spriteBatch.dispose();
+            spriteBatch = null;
+        }
+        if (font != null) {
+            font.dispose();
+            font = null;
         }
     }
 }
