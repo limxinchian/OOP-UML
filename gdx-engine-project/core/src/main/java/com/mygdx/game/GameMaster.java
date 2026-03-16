@@ -40,7 +40,7 @@ public class GameMaster extends ApplicationAdapter {
 
         // Initialize engine managers FIRST, then start the first scene
         engine.initialize();
-        engine.startScene(CrossyLaneSceneKey.GAMEPLAY);
+        engine.startScene(CrossyLaneSceneKey.MAIN_MENU);
     }
 
     @Override
