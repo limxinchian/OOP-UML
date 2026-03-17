@@ -5,14 +5,18 @@ import java.util.List;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.crossylane.entities.CarEntity;
-import com.mygdx.game.engine.ecs.Entity;
-import com.mygdx.game.engine.ecs.TransformComponent;
-import com.mygdx.game.crossylane.entities.CarEntity;
+import com.mygdx.game.crossylane.entities.EntityFactory;
+import com.mygdx.game.crossylane.entities.GoalZoneEntity;
+import com.mygdx.game.crossylane.entities.GrassZoneEntity;
+import com.mygdx.game.crossylane.entities.LaneMarkerEntity;
+import com.mygdx.game.crossylane.entities.PlayerEntity;
 import com.mygdx.game.engine.managers.CollisionManager;
 import com.mygdx.game.engine.managers.EntityManager;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.managers.MovementManager;
+import com.mygdx.game.engine.ecs.TransformComponent;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
@@ -23,10 +27,12 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private final CollisionManager collisionManager;
     private final IOManager ioManager;
 
+    private PlayerEntity player;
+    private GoalZoneEntity goalZone;
+    private GrassZoneEntity bottomGrass;
+    private GrassZoneEntity topGrass;
     private final List<CarEntity> cars = new ArrayList<>();
-
-    private static final float WORLD_WIDTH = 800f;
-    private static final float WORLD_HEIGHT = 600f;
+    private final List<LaneMarkerEntity> laneMarkers = new ArrayList<>();
 
     public GameplayScene(
             SceneManager<CrossyLaneSceneKey> sceneManager,
@@ -48,67 +54,91 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     @Override
     public void onEnter() {
-        cars.clear();
+        // --- Background zones ---
+        bottomGrass = EntityFactory.createBottomGrass();
+        topGrass    = EntityFactory.createTopGrass();
+        entityManager.addEntity(bottomGrass);
+        entityManager.addEntity(topGrass);
 
-        CarEntity car1 = new CarEntity(0f, 260f, 80f, 40f, 150f, 1);
-        CarEntity car2 = new CarEntity(700f, 360f, 80f, 40f, 180f, -1);
+        // --- Goal zone ---
+        goalZone = EntityFactory.createGoalZone();
+        entityManager.addEntity(goalZone);
 
-        cars.add(car1);
-        cars.add(car2);
+        // --- Lane markers ---
+        laneMarkers.clear();
+        for (LaneMarkerEntity marker : EntityFactory.createAllLaneMarkers()) {
+            laneMarkers.add(marker);
+            entityManager.addEntity(marker);
+        }
 
-        entityManager.addEntity(car1);
-        entityManager.addEntity(car2);
+        // --- Cars: 3 lanes, increasing difficulty ---
+        // Lane 0: 2 cars going right, slow
+        for (CarEntity car : EntityFactory.createLane(0, 2, 120f, 1)) {
+            cars.add(car);
+            entityManager.addEntity(car);
+        }
+        // Lane 1: 3 cars going left, medium
+        for (CarEntity car : EntityFactory.createLane(1, 3, 160f, -1)) {
+            cars.add(car);
+            entityManager.addEntity(car);
+        }
+        // Lane 2: 2 cars going right, fast
+        for (CarEntity car : EntityFactory.createLane(2, 2, 220f, 1)) {
+            cars.add(car);
+            entityManager.addEntity(car);
+        }
+
+        // --- Player (spawned last so it renders on top) ---
+        player = EntityFactory.createPlayer();
+        entityManager.addEntity(player);
     }
 
     @Override
     public void onExit() {
-        for (CarEntity car : cars) {
-            entityManager.removeEntity(car);
-        }
+        entityManager.removeEntity(player);
+        entityManager.removeEntity(goalZone);
+        entityManager.removeEntity(bottomGrass);
+        entityManager.removeEntity(topGrass);
+        for (CarEntity car : cars)           entityManager.removeEntity(car);
+        for (LaneMarkerEntity m : laneMarkers) entityManager.removeEntity(m);
         cars.clear();
+        laneMarkers.clear();
     }
 
     @Override
     public void update(float delta) {
-        updateCars(delta);
+        wrapCars();
     }
 
-    private void updateCars(float delta) {
+    /** Wraps cars that go off-screen back to the other side */
+    private void wrapCars() {
         for (CarEntity car : cars) {
-            TransformComponent transform = car.getComponent(TransformComponent.class);
-            if (transform == null)
-                continue;
+            TransformComponent t = car.getComponent(TransformComponent.class);
+            if (t == null) continue;
 
-            float newX = transform.getPositionX() + car.getSpeed() * car.getDirection() * delta;
-            transform.setPositionX(newX);
-
-            if (car.getDirection() == 1 && transform.getPositionX() > WORLD_WIDTH) {
-                transform.setPositionX(-transform.getWidth());
-            }
-
-            if (car.getDirection() == -1 && transform.getPositionX() + transform.getWidth() < 0) {
-                transform.setPositionX(WORLD_WIDTH);
+            if (car.getDirection() == 1 && t.getPositionX() > CrossyLaneConfig.WORLD_WIDTH) {
+                t.setPositionX(-t.getWidth());
+            } else if (car.getDirection() == -1 && t.getRight() < 0) {
+                t.setPositionX(CrossyLaneConfig.WORLD_WIDTH);
             }
         }
     }
 
     @Override
-    public void afterWorldUpdate(float delta) {
-    }
+    public void afterWorldUpdate(float delta) { }
 
     @Override
     public void render() {
-        Gdx.gl.glClearColor(0.2f, 0.6f, 0.2f, 1f);
+        Gdx.gl.glClearColor(0.4f, 0.4f, 0.4f, 1f); // grey = road colour
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        ioManager.getOutput().beginFrame(0.2f, 0.6f, 0.2f, 1f);
+        ioManager.getOutput().beginFrame(0.4f, 0.4f, 0.4f, 1f);
         ioManager.getOutput().renderEntities(entityManager.getEntities());
         ioManager.getOutput().endFrame();
     }
 
     @Override
-    public void dispose() {
-    }
+    public void dispose() { }
 
     @Override
     public boolean updatesWorld() {
