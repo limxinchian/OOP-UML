@@ -10,10 +10,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
 
-/**
- * Output side of IO:
- * draws all entities that have TransformComponent + RenderableComponent.
- */
 public class OutputManager {
 
     private ShapeRenderer shapeRenderer;
@@ -35,17 +31,54 @@ public class OutputManager {
     public void beginFrame(float r, float g, float b, float a) {
         Gdx.gl.glClearColor(r, g, b, a);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
     }
 
     public void renderEntities(List<Entity> entities) {
+        // 1. Draw textured entities first
+        spriteBatch.begin();
         for (Entity e : entities) {
-            if (!e.isActive()) continue;
+            if (!e.isActive())
+                continue;
+
+            TransformComponent t = e.getComponent(TransformComponent.class);
+            TextureComponent tex = e.getComponent(TextureComponent.class);
+
+            if (t == null || tex == null || !tex.isEnabled())
+                continue;
+
+            if (tex.isFlipX()) {
+                spriteBatch.draw(
+                        tex.getTexture(),
+                        t.getPositionX() + t.getWidth(),
+                        t.getPositionY(),
+                        -t.getWidth(),
+                        t.getHeight());
+            } else {
+                spriteBatch.draw(
+                        tex.getTexture(),
+                        t.getPositionX(),
+                        t.getPositionY(),
+                        t.getWidth(),
+                        t.getHeight());
+            }
+        }
+        spriteBatch.end();
+
+        // 2. Draw shape-based entities
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        for (Entity e : entities) {
+            if (!e.isActive())
+                continue;
 
             TransformComponent t = e.getComponent(TransformComponent.class);
             RenderableComponent rc = e.getComponent(RenderableComponent.class);
+            TextureComponent tex = e.getComponent(TextureComponent.class);
 
-            if (t == null || rc == null || !rc.isEnabled()) continue;
+            // If entity already has texture, skip shape rendering
+            if (tex != null && tex.isEnabled())
+                continue;
+            if (t == null || rc == null || !rc.isEnabled())
+                continue;
 
             shapeRenderer.setColor(rc.r(), rc.g(), rc.b(), rc.a());
 
@@ -56,10 +89,11 @@ public class OutputManager {
                 shapeRenderer.circle(t.getPositionX() + radius, t.getPositionY() + radius, radius);
             }
         }
+        shapeRenderer.end();
     }
 
     public void endFrame() {
-        shapeRenderer.end();
+        // no-op, kept for compatibility
     }
 
     public void beginTextOverlay() {

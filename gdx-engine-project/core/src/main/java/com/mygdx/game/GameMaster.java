@@ -19,11 +19,10 @@ public class GameMaster extends ApplicationAdapter {
     public void create() {
         engine = new EngineCore<>();
 
-        // Wire scenes to engine-owned managers
         SceneManager<CrossyLaneSceneKey> sceneManager = engine.getSceneManager();
 
-        sceneManager.registerScene(new MainMenuScene(sceneManager, engine.getIoManager()));
-        sceneManager.registerScene(new InstructionScene(sceneManager, engine.getIoManager()));
+        sceneManager.registerScene(new MainMenuScene(sceneManager));
+        sceneManager.registerScene(new InstructionScene(sceneManager));
         sceneManager.registerScene(new PauseScene(sceneManager));
 
         sceneManager.registerScene(
@@ -38,7 +37,6 @@ public class GameMaster extends ApplicationAdapter {
 
         sceneManager.registerScene(new ResultScene(sceneManager));
 
-        // Initialize engine managers FIRST, then start the first scene
         engine.initialize();
         engine.startScene(CrossyLaneSceneKey.MAIN_MENU);
     }
