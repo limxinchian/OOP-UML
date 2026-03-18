@@ -23,6 +23,9 @@ import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
 public class GameplayScene implements IScene<CrossyLaneSceneKey> {
+    private static final int STARTING_LIVES = 3;
+    private static final int STARTING_LEVEL = 1;
+    private static final int GOAL_SCORE_BONUS = 100;
 
     private final SceneManager<CrossyLaneSceneKey> sceneManager;
     private final EntityManager entityManager;
@@ -33,8 +36,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private final List<CarEntity> cars = new ArrayList<>();
     private final GameplayHudOverlay hudOverlay = new GameplayHudOverlay();
     private int displayedScore = 0;
-    private int displayedLives = 3;
-    private int displayedLevel = 1;
+    private int displayedLives = STARTING_LIVES;
+    private int displayedLevel = STARTING_LEVEL;
     private PlayerEntity player;
 
     private ShapeRenderer shapeRenderer;
@@ -95,6 +98,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     private void initializeWorld() {
         cars.clear();
+        resetHudState();
 
         player = new PlayerEntity(PLAYER_START_X, PLAYER_START_Y);
         entityManager.addEntity(player);
@@ -117,6 +121,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     }
 
     public void resetGame() {
+        resetHudState();
+
         for (CarEntity car : cars) {
             entityManager.removeEntity(car);
         }
@@ -146,15 +152,45 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
             for (CarEntity car : cars) {
                 if (isColliding(player, car)) {
-                    triggerGameOver();
+                    handlePlayerHit();
                     return;
                 }
             }
 
             if (hasReachedGoal()) {
-                sceneManager.changeScene(CrossyLaneSceneKey.RESULT);
+                handleGoalReached();
             }
         }
+    }
+
+    private void resetHudState() {
+        displayedScore = 0;
+        displayedLives = STARTING_LIVES;
+        displayedLevel = STARTING_LEVEL;
+    }
+
+    private void handlePlayerHit() {
+        displayedLives--;
+
+        if (displayedLives <= 0) {
+            triggerGameOver();
+            return;
+        }
+
+        if (player != null) {
+            player.resetPosition();
+        }
+    }
+
+    private void handleGoalReached() {
+        displayedScore += GOAL_SCORE_BONUS;
+        displayedLevel++;
+
+        if (player != null) {
+            player.resetPosition();
+        }
+
+        sceneManager.changeScene(CrossyLaneSceneKey.RESULT);
     }
 
     private void wrapCars() {
@@ -212,6 +248,18 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     public void triggerGameOver() {
         sceneManager.changeScene(CrossyLaneSceneKey.RESULT);
+    }
+
+    public int getDisplayedScore() {
+        return displayedScore;
+    }
+
+    public int getDisplayedLives() {
+        return displayedLives;
+    }
+
+    public int getDisplayedLevel() {
+        return displayedLevel;
     }
 
     @Override
