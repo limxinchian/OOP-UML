@@ -9,6 +9,7 @@ import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.SafeStopZoneEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
+import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.math.Vector2;
 
 /**
@@ -157,6 +158,72 @@ public class EntityFactory {
     /** Creates a collectible coin at a fixed position. */
     public static CoinEntity createCoin(float x, float y) {
         return new CoinEntity(x, y);
+    }
+
+    /**
+     * Creates a coin at a random position that doesn't overlap with existing entities
+     * @param existingEntities List of entities to check for overlaps
+     * @param minY Minimum Y position
+     * @param maxY Maximum Y position
+     * @param minX Minimum X position
+     * @param maxX Maximum X position
+     * @return A coin entity at a non-overlapping position, or null if no valid position found
+     */
+    public static CoinEntity createCoinWithOverlapCheck(List<Entity> existingEntities, float minY, float maxY, float minX, float maxX) {
+        final int MAX_RETRIES = 50;
+        final float COIN_SIZE = CrossyLaneConfig.COIN_SIZE;
+        final float OVERLAP_PADDING = 8f; // Additional padding to prevent coins from being too close
+        
+        for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            // Generate random position
+            float randomX = minX + (float)(Math.random() * (maxX - minX));
+            float randomY = minY + (float)(Math.random() * (maxY - minY));
+            
+            // Create a temporary coin to check for overlaps
+            CoinEntity tempCoin = new CoinEntity(randomX, randomY);
+            
+            // Check for overlaps with existing entities using collision bounds
+            boolean overlaps = false;
+            for (Entity entity : existingEntities) {
+                if (entity instanceof CoinEntity) {
+                    // Get collision components for both coins
+                    com.mygdx.game.engine.collision.CollisionComponent tempCollision = 
+                        tempCoin.getComponent(com.mygdx.game.engine.collision.CollisionComponent.class);
+                    com.mygdx.game.engine.collision.CollisionComponent existingCollision = 
+                        entity.getComponent(com.mygdx.game.engine.collision.CollisionComponent.class);
+                    
+                    if (tempCollision != null && existingCollision != null) {
+                        com.mygdx.game.engine.math.Rectangle tempBounds = tempCollision.getBounds();
+                        com.mygdx.game.engine.math.Rectangle existingBounds = existingCollision.getBounds();
+                        
+                        if (tempBounds != null && existingBounds != null) {
+                            // Expand bounds by padding to create separation
+                            float expandedWidth = tempBounds.getWidth() + OVERLAP_PADDING;
+                            float expandedHeight = tempBounds.getHeight() + OVERLAP_PADDING;
+                            float expandedX = tempBounds.getX() - (OVERLAP_PADDING / 2);
+                            float expandedY = tempBounds.getY() - (OVERLAP_PADDING / 2);
+                            
+                            com.mygdx.game.engine.math.Rectangle expandedBounds = 
+                                new com.mygdx.game.engine.math.Rectangle(
+                                    expandedX, expandedY, expandedWidth, expandedHeight);
+                            
+                            if (expandedBounds.overlaps(existingBounds)) {
+                                overlaps = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // If no overlaps found, return the coin
+            if (!overlaps) {
+                return tempCoin;
+            }
+        }
+        
+        // If we couldn't find a valid position after max retries, return null
+        return null;
     }
 
     /**

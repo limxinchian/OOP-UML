@@ -15,11 +15,11 @@ import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
 import com.mygdx.game.crossylane.ui.GameplayHudOverlay;
 import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
-import com.mygdx.game.engine.math.Vector2;
 import com.mygdx.game.engine.managers.CollisionManager;
 import com.mygdx.game.engine.managers.EntityManager;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.managers.MovementManager;
+import com.mygdx.game.engine.math.Vector2;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
@@ -134,10 +134,20 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     }
 
     private void spawnCoins() {
+        // Use overlap-safe coin creation to prevent coins from overlapping
         for (Vector2 position : cachedCoinSpawnPositions) {
-            CoinEntity coin = EntityFactory.createCoin(position.getX(), position.getY());
-            coins.add(coin);
-            entityManager.addEntity(coin);
+            CoinEntity coin = EntityFactory.createCoinWithOverlapCheck(
+                new ArrayList<>(coins), // Check against already placed coins
+                position.getY() - 10f,   // minY (slightly above the road)
+                position.getY() + 10f,   // maxY (slightly below the road)
+                0f,                      // minX
+                WORLD_WIDTH              // maxX
+            );
+            
+            if (coin != null) {
+                coins.add(coin);
+                entityManager.addEntity(coin);
+            }
         }
     }
 
