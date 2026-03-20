@@ -2,14 +2,14 @@ package com.mygdx.game.crossylane.entities;
 
 import com.badlogic.gdx.Input.Keys;
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
+import com.mygdx.game.crossylane.movement.PlayerGridMovementStrategy;
 import com.mygdx.game.engine.collision.CollisionComponent;
 import com.mygdx.game.engine.ecs.Entity;
+import com.mygdx.game.engine.ecs.PhysicsComponent;
 import com.mygdx.game.engine.ecs.TransformComponent;
 import com.mygdx.game.engine.io.InputComponent;
-import com.mygdx.game.engine.render.TextureComponent;
-import com.mygdx.game.engine.ecs.PhysicsComponent;
 import com.mygdx.game.engine.movement.MovementComponent;
-import com.mygdx.game.crossylane.movement.PlayerGridMovementStrategy;
+import com.mygdx.game.engine.render.TextureComponent;
 
 public class PlayerEntity extends Entity {
 
@@ -45,6 +45,10 @@ public class PlayerEntity extends Entity {
 
                 if (otherLayer == CrossyLaneConfig.LAYER_GOAL) {
                     reachedGoal = true;
+                }
+
+                if (otherLayer == CrossyLaneConfig.LAYER_COIN) {
+                    // Coin collection handled by GameplayScene
                 }
             }
         });

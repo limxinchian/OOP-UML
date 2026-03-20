@@ -4,16 +4,16 @@ import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.engine.collision.CollisionComponent;
 import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
-import com.mygdx.game.engine.render.RenderableComponent;
+import com.mygdx.game.engine.render.TextureComponent;
 
 /**
- * A collectible coin placed on a lane or safe zone.
+ * A collectible coin placed on a road lane.
  * Grants a score bonus when the player walks over it.
  *
  * Components attached:
  *  - TransformComponent  : position and size
  *  - CollisionComponent  : trigger, LAYER_COIN, only detects LAYER_PLAYER
- *  - RenderableComponent : gold circle
+ *  - TextureComponent    : coin sprite
  */
 public class CoinEntity extends Entity {
 
@@ -29,8 +29,8 @@ public class CoinEntity extends Entity {
                 CrossyLaneConfig.MASK_COIN,
                 true));
 
-        // Gold circle
-        addComponent(RenderableComponent.circle(size / 2f, 1f, 0.84f, 0f, 1f));
+        // Coin texture
+        addComponent(new TextureComponent("coin.png"));
     }
 
     /** @return true if this coin has already been picked up */

@@ -2,6 +2,7 @@ package com.mygdx.game.crossylane.entities;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
@@ -26,6 +27,7 @@ import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
  * List<CarEntity> lane = EntityFactory.createLane(0, 3, 150f, 1);
  */
 public class EntityFactory {
+    private static final float COIN_SIDE_MARGIN = 60f;
 
     // Static utility class — no instances needed
     private EntityFactory() {
@@ -218,5 +220,78 @@ public class EntityFactory {
         return createTrafficLight(laneIndex,
                 CrossyLaneConfig.TRAFFIC_LIGHT_RED_DURATION,
                 CrossyLaneConfig.TRAFFIC_LIGHT_GREEN_DURATION);
+    }
+
+    /**
+     * Creates coins across the visible road lanes with randomized spacing.
+     *
+     * @param laneCount     number of visible road lanes
+     * @param coinsPerLane  number of coins to place in each lane
+     * @return list of CoinEntity ready to be added to EntityManager
+     */
+    public static List<CoinEntity> createCoinsForRoadLanes(int laneCount, int coinsPerLane) {
+        List<CoinEntity> coins = new ArrayList<>();
+
+        if (laneCount <= 0 || coinsPerLane <= 0) {
+            return coins;
+        }
+
+        float usableWidth = CrossyLaneConfig.WORLD_WIDTH
+                - (2f * COIN_SIDE_MARGIN)
+                - CrossyLaneConfig.COIN_SIZE;
+        float slotWidth = usableWidth / coinsPerLane;
+
+        for (int laneIndex = 0; laneIndex < laneCount; laneIndex++) {
+            float y = CrossyLaneConfig.ROAD_START_Y
+                    + (laneIndex * CrossyLaneConfig.LANE_HEIGHT)
+                    + (CrossyLaneConfig.LANE_HEIGHT - CrossyLaneConfig.COIN_SIZE) / 2f;
+
+            for (int coinIndex = 0; coinIndex < coinsPerLane; coinIndex++) {
+                float slotStartX = COIN_SIDE_MARGIN + (coinIndex * slotWidth);
+                float randomOffset = ThreadLocalRandom.current().nextFloat() * slotWidth;
+                float x = Math.min(
+                        slotStartX + randomOffset,
+                        CrossyLaneConfig.WORLD_WIDTH - COIN_SIDE_MARGIN - CrossyLaneConfig.COIN_SIZE);
+                coins.add(createCoin(x, y));
+            }
+        }
+
+        return coins;
+    }
+
+    /**
+     * Creates coins spread across the top grass patch before the goal zone.
+     * Coins are distributed randomly within the specified vertical range.
+     *
+     * @param coinCount number of coins to create
+     * @param minY      minimum Y position (top of road)
+     * @param maxY      maximum Y position (bottom of goal zone)
+     * @return list of CoinEntity ready to be added to EntityManager
+     */
+    public static List<CoinEntity> createCoinsForTopPatch(int coinCount, float minY, float maxY) {
+        List<CoinEntity> coins = new ArrayList<>();
+
+        if (coinCount <= 0 || minY >= maxY) {
+            return coins;
+        }
+
+        float usableWidth = CrossyLaneConfig.WORLD_WIDTH
+                - (2f * COIN_SIDE_MARGIN)
+                - CrossyLaneConfig.COIN_SIZE;
+        float usableHeight = maxY - minY - CrossyLaneConfig.COIN_SIZE;
+
+        for (int i = 0; i < coinCount; i++) {
+            // Random X position with side margins
+            float randomX = ThreadLocalRandom.current().nextFloat() * usableWidth;
+            float x = COIN_SIDE_MARGIN + randomX;
+
+            // Random Y position within the top grass patch
+            float randomY = ThreadLocalRandom.current().nextFloat() * usableHeight;
+            float y = minY + randomY;
+
+            coins.add(createCoin(x, y));
+        }
+
+        return coins;
     }
 }
