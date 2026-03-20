@@ -2,12 +2,14 @@ package com.mygdx.game.crossylane.entities;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.SafeStopZoneEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
+import com.mygdx.game.engine.math.Vector2;
 
 /**
  * Factory class for creating all CrossyLane game entities.
@@ -26,6 +28,7 @@ import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
  *   List<CarEntity> lane = EntityFactory.createLane(0, 3, 150f, 1);
  */
 public class EntityFactory {
+    private static final float COIN_SIDE_MARGIN = 60f;
 
     // Static utility class — no instances needed
     private EntityFactory() {}
@@ -203,5 +206,34 @@ public class EntityFactory {
         return createTrafficLight(laneIndex,
                 CrossyLaneConfig.TRAFFIC_LIGHT_RED_DURATION,
                 CrossyLaneConfig.TRAFFIC_LIGHT_GREEN_DURATION);
+    }
+
+    /** Generates random coin spawn coordinates for a visible road. */
+    public static List<Vector2> createCoinSpawnPositionsInRoad(float roadY, float roadHeight, int coinCount) {
+        List<Vector2> positions = new ArrayList<>();
+        float coinY = roadY + (roadHeight - CrossyLaneConfig.COIN_SIZE) / 2f;
+        float maxCoinX = CrossyLaneConfig.WORLD_WIDTH - COIN_SIDE_MARGIN - CrossyLaneConfig.COIN_SIZE;
+
+        for (int i = 0; i < coinCount; i++) {
+            float coinX = ThreadLocalRandom.current().nextFloat(COIN_SIDE_MARGIN, maxCoinX);
+            positions.add(new Vector2(coinX, coinY));
+        }
+
+        return positions;
+    }
+
+    /**
+     * Generates random coin spawn coordinates for a fixed set of visible road lanes.
+     */
+    public static List<Vector2> createCoinSpawnPositionsForRoads(float[] roadYs,
+                                                                 float roadHeight,
+                                                                 int coinsPerLane) {
+        List<Vector2> allPositions = new ArrayList<>();
+
+        for (float roadY : roadYs) {
+            allPositions.addAll(createCoinSpawnPositionsInRoad(roadY, roadHeight, coinsPerLane));
+        }
+
+        return allPositions;
     }
 }

@@ -9,16 +9,17 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.crossylane.entities.CarEntity;
-import com.mygdx.game.crossylane.ui.GameplayHudOverlay;
+import com.mygdx.game.crossylane.entities.EntityFactory;
 import com.mygdx.game.crossylane.entities.PlayerEntity;
+import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
+import com.mygdx.game.crossylane.ui.GameplayHudOverlay;
 import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.math.Vector2;
 import com.mygdx.game.engine.managers.CollisionManager;
 import com.mygdx.game.engine.managers.EntityManager;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.managers.MovementManager;
-import com.mygdx.game.engine.render.RenderShape;
-import com.mygdx.game.engine.render.RenderableComponent;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
@@ -34,6 +35,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private final IOManager ioManager;
 
     private final List<CarEntity> cars = new ArrayList<>();
+    private final List<CoinEntity> coins = new ArrayList<>();
+    private final List<Vector2> cachedCoinSpawnPositions = new ArrayList<>();
     private final GameplayHudOverlay hudOverlay = new GameplayHudOverlay();
     private int displayedScore = 0;
     private int displayedLives = STARTING_LIVES;
@@ -57,6 +60,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private static final float ROAD_1_Y = LANE_1_Y - 10f;
     private static final float ROAD_2_Y = LANE_2_Y - 10f;
     private static final float ROAD_3_Y = LANE_3_Y - 10f;
+    private static final int COINS_PER_LANE = 3;
+    private static final float[] COIN_ROAD_Y_POSITIONS = { ROAD_1_Y, ROAD_2_Y, ROAD_3_Y };
 
     private boolean worldInitialized = false;
 
@@ -98,6 +103,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     private void initializeWorld() {
         cars.clear();
+        clearCoins();
         resetHudState();
 
         player = new PlayerEntity(PLAYER_START_X, PLAYER_START_Y);
@@ -118,6 +124,29 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         for (CarEntity car : cars) {
             entityManager.addEntity(car);
         }
+
+        if (cachedCoinSpawnPositions.isEmpty()) {
+            cacheCoinSpawnPositions();
+        }
+
+        // Spawn coins across the road
+        spawnCoins();
+    }
+
+    private void spawnCoins() {
+        for (Vector2 position : cachedCoinSpawnPositions) {
+            CoinEntity coin = EntityFactory.createCoin(position.getX(), position.getY());
+            coins.add(coin);
+            entityManager.addEntity(coin);
+        }
+    }
+
+    private void cacheCoinSpawnPositions() {
+        cachedCoinSpawnPositions.clear();
+        cachedCoinSpawnPositions.addAll(EntityFactory.createCoinSpawnPositionsForRoads(
+                COIN_ROAD_Y_POSITIONS,
+                ROAD_HEIGHT,
+                COINS_PER_LANE));
     }
 
     public void resetGame() {
@@ -127,6 +156,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
             entityManager.removeEntity(car);
         }
         cars.clear();
+
+        clearCoins();
 
         if (player != null) {
             entityManager.removeEntity(player);
@@ -156,6 +187,9 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
                     return;
                 }
             }
+
+            // Check for coin collection
+            checkCoinCollection();
 
             if (hasReachedGoal()) {
                 handleGoalReached();
@@ -191,6 +225,51 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         }
 
         sceneManager.changeScene(CrossyLaneSceneKey.RESULT);
+    }
+
+    /**
+     * Checks for coin collection and updates score when player collects coins
+     */
+    private void checkCoinCollection() {
+        if (player == null) return;
+
+        // Iterate through coins in reverse order to safely remove collected ones
+        for (int i = coins.size() - 1; i >= 0; i--) {
+            CoinEntity coin = coins.get(i);
+            
+            // Skip already collected coins
+            if (coin.isCollected()) {
+                continue;
+            }
+
+            // Check collision between player and coin
+            if (isColliding(player, coin)) {
+                // Collect the coin
+                coin.collect();
+                
+                // Remove from active list
+                coins.remove(i);
+                entityManager.removeEntity(coin);
+                
+                // Add score bonus
+                addCoinScore();
+            }
+        }
+    }
+
+    /**
+     * Adds score when a coin is collected
+     */
+    private void addCoinScore() {
+        int coinValue = 50; // Points per coin
+        displayedScore += coinValue;
+    }
+
+    private void clearCoins() {
+        for (CoinEntity coin : coins) {
+            entityManager.removeEntity(coin);
+        }
+        coins.clear();
     }
 
     private void wrapCars() {
@@ -341,6 +420,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
             entityManager.removeEntity(car);
         }
         cars.clear();
+
+        clearCoins();
 
         if (player != null) {
             entityManager.removeEntity(player);
