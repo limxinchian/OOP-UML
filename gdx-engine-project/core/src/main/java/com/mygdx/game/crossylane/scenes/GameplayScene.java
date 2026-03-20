@@ -8,10 +8,13 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
+import com.mygdx.game.crossylane.entities.EntityFactory;
+import com.mygdx.game.crossylane.entities.GoalZoneEntity;
+import com.mygdx.game.crossylane.entities.GrassZoneEntity;
+import com.mygdx.game.crossylane.entities.LaneMarkerEntity;
 import com.mygdx.game.crossylane.entities.CarEntity;
 import com.mygdx.game.crossylane.ui.GameplayHudOverlay;
 import com.mygdx.game.crossylane.entities.PlayerEntity;
-import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
 import com.mygdx.game.engine.managers.CollisionManager;
 import com.mygdx.game.engine.managers.EntityManager;
@@ -21,6 +24,7 @@ import com.mygdx.game.engine.render.RenderShape;
 import com.mygdx.game.engine.render.RenderableComponent;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
+import com.mygdx.game.crossylane.state.CrossyLaneSession;
 
 public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private static final int STARTING_LIVES = 3;
@@ -29,12 +33,15 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     private final SceneManager<CrossyLaneSceneKey> sceneManager;
     private final EntityManager entityManager;
-    private final MovementManager movementManager;
-    private final CollisionManager collisionManager;
     private final IOManager ioManager;
+    private final CrossyLaneSession session;
 
     private final List<CarEntity> cars = new ArrayList<>();
+    private final List<GrassZoneEntity> grassZones = new ArrayList<>();
+    private final List<LaneMarkerEntity> laneMarkers = new ArrayList<>();
+    private GoalZoneEntity goalZone;
     private final GameplayHudOverlay hudOverlay = new GameplayHudOverlay();
+
     private int displayedScore = 0;
     private int displayedLives = STARTING_LIVES;
     private int displayedLevel = STARTING_LEVEL;
@@ -48,29 +55,19 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private static final float PLAYER_START_X = CrossyLaneConfig.PLAYER_START_X;
     private static final float PLAYER_START_Y = CrossyLaneConfig.PLAYER_START_Y;
 
-    private static final float ROAD_HEIGHT = 60f;
-
-    private static final float LANE_1_Y = 140f;
-    private static final float LANE_2_Y = 260f;
-    private static final float LANE_3_Y = 380f;
-
-    private static final float ROAD_1_Y = LANE_1_Y - 10f;
-    private static final float ROAD_2_Y = LANE_2_Y - 10f;
-    private static final float ROAD_3_Y = LANE_3_Y - 10f;
-
     private boolean worldInitialized = false;
 
     public GameplayScene(
+            CrossyLaneSession session,
             SceneManager<CrossyLaneSceneKey> sceneManager,
             EntityManager entityManager,
             MovementManager movementManager,
             CollisionManager collisionManager,
             IOManager ioManager) {
 
+        this.session = session;
         this.sceneManager = sceneManager;
         this.entityManager = entityManager;
-        this.movementManager = movementManager;
-        this.collisionManager = collisionManager;
         this.ioManager = ioManager;
     }
 
@@ -98,44 +95,70 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     private void initializeWorld() {
         cars.clear();
+        grassZones.clear();
+        laneMarkers.clear();
+        goalZone = null;
+
         resetHudState();
 
-        player = new PlayerEntity(PLAYER_START_X, PLAYER_START_Y);
-        entityManager.addEntity(player);
+        grassZones.addAll(EntityFactory.createDemoGrassZones());
+        for (GrassZoneEntity grass : grassZones) {
+            entityManager.addEntity(grass);
+        }
 
-        // Lane 1, left -> right
-        cars.add(new CarEntity(0f, LANE_1_Y, 80f, 40f, 150f, 1));
-        cars.add(new CarEntity(300f, LANE_1_Y, 80f, 40f, 150f, 1));
+        goalZone = EntityFactory.createGoalZone();
+        entityManager.addEntity(goalZone);
 
-        // Lane 2, right -> left
-        cars.add(new CarEntity(700f, LANE_2_Y, 80f, 40f, 180f, -1));
-        cars.add(new CarEntity(400f, LANE_2_Y, 80f, 40f, 180f, -1));
+        laneMarkers.addAll(EntityFactory.createLaneMarkers(getPlayableLaneCount()));
+        for (LaneMarkerEntity marker : laneMarkers) {
+            entityManager.addEntity(marker);
+        }
 
-        // Lane 3, left -> right
-        cars.add(new CarEntity(200f, LANE_3_Y, 80f, 40f, 200f, 1));
-        cars.add(new CarEntity(600f, LANE_3_Y, 80f, 40f, 200f, 1));
-
+        cars.addAll(EntityFactory.createDemoCars());
         for (CarEntity car : cars) {
             entityManager.addEntity(car);
         }
+
+        player = EntityFactory.createPlayer();
+        entityManager.addEntity(player);
     }
 
     public void resetGame() {
         resetHudState();
+        session.setPlayerWon(false);
 
+        clearWorldEntities();
+
+        worldInitialized = false;
+        initializeWorld();
+        worldInitialized = true;
+    }
+
+    private void clearWorldEntities() {
         for (CarEntity car : cars) {
             entityManager.removeEntity(car);
         }
         cars.clear();
 
+        for (GrassZoneEntity grass : grassZones) {
+            entityManager.removeEntity(grass);
+        }
+        grassZones.clear();
+
+        for (LaneMarkerEntity marker : laneMarkers) {
+            entityManager.removeEntity(marker);
+        }
+        laneMarkers.clear();
+
+        if (goalZone != null) {
+            entityManager.removeEntity(goalZone);
+            goalZone = null;
+        }
+
         if (player != null) {
             entityManager.removeEntity(player);
             player = null;
         }
-
-        worldInitialized = false;
-        initializeWorld();
-        worldInitialized = true;
     }
 
     @Override
@@ -150,14 +173,12 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         if (player != null) {
             clampPlayerToScreen();
 
-            for (CarEntity car : cars) {
-                if (isColliding(player, car)) {
-                    handlePlayerHit();
-                    return;
-                }
+            if (player.consumeHitByCar()) {
+                handlePlayerHit();
+                return;
             }
 
-            if (hasReachedGoal()) {
+            if (player.consumeReachedGoal()) {
                 handleGoalReached();
             }
         }
@@ -189,7 +210,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         if (player != null) {
             player.resetPosition();
         }
-
+        session.setPlayerWon(true);
         sceneManager.changeScene(CrossyLaneSceneKey.RESULT);
     }
 
@@ -235,18 +256,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         transform.setPosition(x, y);
     }
 
-    private boolean hasReachedGoal() {
-        if (player == null)
-            return false;
-
-        TransformComponent transform = player.getComponent(TransformComponent.class);
-        if (transform == null)
-            return false;
-
-        return transform.getTop() >= WORLD_HEIGHT - 40f;
-    }
-
     public void triggerGameOver() {
+        session.setPlayerWon(false);
         sceneManager.changeScene(CrossyLaneSceneKey.RESULT);
     }
 
@@ -266,31 +277,13 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     public void afterWorldUpdate(float delta) {
     }
 
-    private boolean isColliding(Entity a, Entity b) {
-        TransformComponent ta = a.getComponent(TransformComponent.class);
-        TransformComponent tb = b.getComponent(TransformComponent.class);
-
-        if (ta == null || tb == null) {
-            return false;
-        }
-
-        return ta.getPositionX() < tb.getPositionX() + tb.getWidth()
-                && ta.getPositionX() + ta.getWidth() > tb.getPositionX()
-                && ta.getPositionY() < tb.getPositionY() + tb.getHeight()
-                && ta.getPositionY() + ta.getHeight() > tb.getPositionY();
-    }
-
     @Override
     public void render() {
         Gdx.gl.glClearColor(0.20f, 0.60f, 0.20f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        drawGrassZones();
         drawRoads();
-        drawLaneDividers();
-
         shapeRenderer.end();
 
         ioManager.getOutput().renderEntities(entityManager.getEntities());
@@ -299,53 +292,26 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         ioManager.getOutput().endTextOverlay();
     }
 
-    private void drawGrassZones() {
-        shapeRenderer.setColor(0.20f, 0.60f, 0.20f, 1f);
-
-        shapeRenderer.rect(0f, 0f, WORLD_WIDTH, ROAD_1_Y);
-        shapeRenderer.rect(0f, ROAD_1_Y + ROAD_HEIGHT, WORLD_WIDTH,
-                ROAD_2_Y - (ROAD_1_Y + ROAD_HEIGHT));
-        shapeRenderer.rect(0f, ROAD_2_Y + ROAD_HEIGHT, WORLD_WIDTH,
-                ROAD_3_Y - (ROAD_2_Y + ROAD_HEIGHT));
-        shapeRenderer.rect(0f, ROAD_3_Y + ROAD_HEIGHT, WORLD_WIDTH,
-                WORLD_HEIGHT - (ROAD_3_Y + ROAD_HEIGHT));
-    }
-
     private void drawRoads() {
         shapeRenderer.setColor(0.35f, 0.35f, 0.35f, 1f);
-        shapeRenderer.rect(0f, ROAD_1_Y, WORLD_WIDTH, ROAD_HEIGHT);
-        shapeRenderer.rect(0f, ROAD_2_Y, WORLD_WIDTH, ROAD_HEIGHT);
-        shapeRenderer.rect(0f, ROAD_3_Y, WORLD_WIDTH, ROAD_HEIGHT);
+        shapeRenderer.rect(
+                0f,
+                CrossyLaneConfig.ROAD_START_Y,
+                WORLD_WIDTH,
+                getRoadHeight());
     }
 
-    private void drawLaneDividers() {
-        shapeRenderer.setColor(0.85f, 0.85f, 0.85f, 1f);
-        drawLaneDivider(LANE_1_Y + 15f);
-        drawLaneDivider(LANE_2_Y + 15f);
-        drawLaneDivider(LANE_3_Y + 15f);
+    private int getPlayableLaneCount() {
+        return 3;
     }
 
-    private void drawLaneDivider(float y) {
-        float dashWidth = 30f;
-        float dashHeight = 4f;
-        float gap = 25f;
-
-        for (float x = 0f; x < WORLD_WIDTH; x += dashWidth + gap) {
-            shapeRenderer.rect(x, y, dashWidth, dashHeight);
-        }
+    private float getRoadHeight() {
+        return getPlayableLaneCount() * CrossyLaneConfig.LANE_HEIGHT;
     }
 
     @Override
     public void dispose() {
-        for (CarEntity car : cars) {
-            entityManager.removeEntity(car);
-        }
-        cars.clear();
-
-        if (player != null) {
-            entityManager.removeEntity(player);
-            player = null;
-        }
+        clearWorldEntities();
 
         if (shapeRenderer != null) {
             shapeRenderer.dispose();

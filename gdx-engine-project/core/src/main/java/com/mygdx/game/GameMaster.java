@@ -1,7 +1,9 @@
 package com.mygdx.game;
 
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.mygdx.game.crossylane.state.CrossyLaneSession;
 import com.mygdx.game.crossylane.scenes.CrossyLaneSceneKey;
 import com.mygdx.game.crossylane.scenes.GameplayScene;
 import com.mygdx.game.crossylane.scenes.InstructionScene;
@@ -12,12 +14,14 @@ import com.mygdx.game.engine.core.EngineCore;
 import com.mygdx.game.engine.scene.SceneManager;
 
 public class GameMaster extends ApplicationAdapter {
-
+    
     private EngineCore<CrossyLaneSceneKey> engine;
+    private CrossyLaneSession session;
 
     @Override
     public void create() {
         engine = new EngineCore<>();
+        session = new CrossyLaneSession();
 
         SceneManager<CrossyLaneSceneKey> sceneManager = engine.getSceneManager();
 
@@ -27,6 +31,7 @@ public class GameMaster extends ApplicationAdapter {
 
         sceneManager.registerScene(
             new GameplayScene(
+                session,
                 sceneManager,
                 engine.getEntityManager(),
                 engine.getMovementManager(),
@@ -35,7 +40,7 @@ public class GameMaster extends ApplicationAdapter {
             )
         );
 
-        sceneManager.registerScene(new ResultScene(sceneManager));
+        sceneManager.registerScene(new ResultScene(session, sceneManager));
 
         engine.initialize();
         engine.startScene(CrossyLaneSceneKey.MAIN_MENU);

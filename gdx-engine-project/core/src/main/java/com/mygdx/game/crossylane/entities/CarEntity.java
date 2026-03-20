@@ -2,6 +2,8 @@ package com.mygdx.game.crossylane.entities;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.mygdx.game.engine.movement.BasicMovementStrategy;
+import com.mygdx.game.engine.movement.MovementComponent;
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.engine.collision.CollisionComponent;
 import com.mygdx.game.engine.ecs.Entity;
@@ -34,7 +36,8 @@ public class CarEntity extends Entity {
         ));
 
         addComponent(new PhysicsComponent(speed * direction, 0f, 1f));
-
+        addComponent(new MovementComponent(new BasicMovementStrategy()));
+        
         String texturePath = pickRandomTexture();
         TextureComponent textureComponent = new TextureComponent(texturePath);
         textureComponent.setFlipX(direction < 0);

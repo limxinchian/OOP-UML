@@ -33,64 +33,63 @@ public class OutputManager {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     }
 
-    public void renderEntities(List<Entity> entities) {
-        // 1. Draw textured entities first
-        spriteBatch.begin();
-        for (Entity e : entities) {
-            if (!e.isActive())
-                continue;
+ public void renderEntities(List<Entity> entities) {
+    // 1. Draw shape-based entities first
+    shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+    for (Entity e : entities) {
+        if (!e.isActive())
+            continue;
 
-            TransformComponent t = e.getComponent(TransformComponent.class);
-            TextureComponent tex = e.getComponent(TextureComponent.class);
+        TransformComponent t = e.getComponent(TransformComponent.class);
+        RenderableComponent rc = e.getComponent(RenderableComponent.class);
+        TextureComponent tex = e.getComponent(TextureComponent.class);
 
-            if (t == null || tex == null || !tex.isEnabled())
-                continue;
+        if (tex != null && tex.isEnabled())
+            continue;
+        if (t == null || rc == null || !rc.isEnabled())
+            continue;
 
-            if (tex.isFlipX()) {
-                spriteBatch.draw(
-                        tex.getTexture(),
-                        t.getPositionX() + t.getWidth(),
-                        t.getPositionY(),
-                        -t.getWidth(),
-                        t.getHeight());
-            } else {
-                spriteBatch.draw(
-                        tex.getTexture(),
-                        t.getPositionX(),
-                        t.getPositionY(),
-                        t.getWidth(),
-                        t.getHeight());
-            }
+        shapeRenderer.setColor(rc.r(), rc.g(), rc.b(), rc.a());
+
+        if (rc.getShape() == RenderShape.RECTANGLE) {
+            shapeRenderer.rect(t.getPositionX(), t.getPositionY(), t.getWidth(), t.getHeight());
+        } else if (rc.getShape() == RenderShape.CIRCLE) {
+            float radius = rc.getRadius();
+            shapeRenderer.circle(t.getPositionX() + radius, t.getPositionY() + radius, radius);
         }
-        spriteBatch.end();
-
-        // 2. Draw shape-based entities
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        for (Entity e : entities) {
-            if (!e.isActive())
-                continue;
-
-            TransformComponent t = e.getComponent(TransformComponent.class);
-            RenderableComponent rc = e.getComponent(RenderableComponent.class);
-            TextureComponent tex = e.getComponent(TextureComponent.class);
-
-            // If entity already has texture, skip shape rendering
-            if (tex != null && tex.isEnabled())
-                continue;
-            if (t == null || rc == null || !rc.isEnabled())
-                continue;
-
-            shapeRenderer.setColor(rc.r(), rc.g(), rc.b(), rc.a());
-
-            if (rc.getShape() == RenderShape.RECTANGLE) {
-                shapeRenderer.rect(t.getPositionX(), t.getPositionY(), t.getWidth(), t.getHeight());
-            } else if (rc.getShape() == RenderShape.CIRCLE) {
-                float radius = rc.getRadius();
-                shapeRenderer.circle(t.getPositionX() + radius, t.getPositionY() + radius, radius);
-            }
-        }
-        shapeRenderer.end();
     }
+    shapeRenderer.end();
+
+    // 2. Draw textured entities last
+    spriteBatch.begin();
+    for (Entity e : entities) {
+        if (!e.isActive())
+            continue;
+
+        TransformComponent t = e.getComponent(TransformComponent.class);
+        TextureComponent tex = e.getComponent(TextureComponent.class);
+
+        if (t == null || tex == null || !tex.isEnabled())
+            continue;
+
+        if (tex.isFlipX()) {
+            spriteBatch.draw(
+                    tex.getTexture(),
+                    t.getPositionX() + t.getWidth(),
+                    t.getPositionY(),
+                    -t.getWidth(),
+                    t.getHeight());
+        } else {
+            spriteBatch.draw(
+                    tex.getTexture(),
+                    t.getPositionX(),
+                    t.getPositionY(),
+                    t.getWidth(),
+                    t.getHeight());
+        }
+    }
+    spriteBatch.end();
+}
 
     public void endFrame() {
         // no-op, kept for compatibility

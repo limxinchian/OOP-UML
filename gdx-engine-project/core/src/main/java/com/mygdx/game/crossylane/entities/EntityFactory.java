@@ -21,14 +21,15 @@ import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
  * the factory only touches crossylane classes, never engine internals directly.
  *
  * Usage example (in GameplayScene.onEnter):
- *   PlayerEntity player  = EntityFactory.createPlayer();
- *   GoalZoneEntity goal  = EntityFactory.createGoalZone();
- *   List<CarEntity> lane = EntityFactory.createLane(0, 3, 150f, 1);
+ * PlayerEntity player = EntityFactory.createPlayer();
+ * GoalZoneEntity goal = EntityFactory.createGoalZone();
+ * List<CarEntity> lane = EntityFactory.createLane(0, 3, 150f, 1);
  */
 public class EntityFactory {
 
     // Static utility class — no instances needed
-    private EntityFactory() {}
+    private EntityFactory() {
+    }
 
     // =========================================================================
     // Player
@@ -92,6 +93,16 @@ public class EntityFactory {
         return cars;
     }
 
+    public static List<CarEntity> createDemoCars() {
+        List<CarEntity> cars = new ArrayList<>();
+
+        cars.addAll(createLane(0, 2, 150f, 1));
+        cars.addAll(createLane(1, 2, 180f, -1));
+        cars.addAll(createLane(2, 2, 200f, 1));
+
+        return cars;
+    }
+
     // =========================================================================
     // World zones
     // =========================================================================
@@ -135,16 +146,20 @@ public class EntityFactory {
         return new LaneMarkerEntity(laneIndex);
     }
 
-    /**
-     * Creates all lane divider lines for the full road.
-     * Call once during scene setup to draw the road grid.
-     */
-    public static List<LaneMarkerEntity> createAllLaneMarkers() {
+    public static List<LaneMarkerEntity> createLaneMarkers(int laneCount) {
         List<LaneMarkerEntity> markers = new ArrayList<>();
-        for (int i = 1; i < CrossyLaneConfig.LANE_COUNT; i++) {
+
+        for (int i = 1; i < laneCount; i++) {
             markers.add(createLaneMarker(i));
         }
+
         return markers;
+    }
+
+    public static List<GrassZoneEntity> createDemoGrassZones() {
+        List<GrassZoneEntity> grassZones = new ArrayList<>();
+        grassZones.add(createBottomGrass());
+        return grassZones;
     }
 
     // =========================================================================
@@ -181,13 +196,13 @@ public class EntityFactory {
     /**
      * Creates a traffic light at the left edge of a lane.
      *
-     * @param laneIndex    0-based lane index
-     * @param redDuration  seconds the light stays red
+     * @param laneIndex     0-based lane index
+     * @param redDuration   seconds the light stays red
      * @param greenDuration seconds the light stays green
      */
     public static TrafficLightEntity createTrafficLight(int laneIndex,
-                                                        float redDuration,
-                                                        float greenDuration) {
+            float redDuration,
+            float greenDuration) {
         float x = 5f;
         float y = CrossyLaneConfig.ROAD_START_Y
                 + (laneIndex * CrossyLaneConfig.LANE_HEIGHT)

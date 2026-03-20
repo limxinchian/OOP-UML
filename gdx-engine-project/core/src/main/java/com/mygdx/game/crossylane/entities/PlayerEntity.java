@@ -7,37 +7,60 @@ import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
 import com.mygdx.game.engine.io.InputComponent;
 import com.mygdx.game.engine.render.TextureComponent;
+import com.mygdx.game.engine.ecs.PhysicsComponent;
+import com.mygdx.game.engine.movement.MovementComponent;
+import com.mygdx.game.crossylane.movement.PlayerGridMovementStrategy;
 
 public class PlayerEntity extends Entity {
 
     private boolean walkToggle = false;
+    private boolean hitByCar = false;
+    private boolean reachedGoal = false;
+
+    private final PlayerGridMovementStrategy movementStrategy = new PlayerGridMovementStrategy();
 
     public PlayerEntity(float x, float y) {
         addComponent(new TransformComponent(
                 x,
                 y,
                 CrossyLaneConfig.PLAYER_WIDTH,
-                CrossyLaneConfig.PLAYER_HEIGHT
-        ));
-
+                CrossyLaneConfig.PLAYER_HEIGHT));
+        addComponent(new PhysicsComponent(0f, 0f, 1f));
+        addComponent(new MovementComponent(movementStrategy));
         addComponent(new CollisionComponent(
                 CrossyLaneConfig.LAYER_PLAYER,
                 CrossyLaneConfig.MASK_PLAYER,
-                true
-        ));
+                true) {
+            @Override
+            public void onCollisionEnter(CollisionComponent other) {
+                if (other == null) {
+                    return;
+                }
+
+                int otherLayer = other.getCollisionLayer();
+
+                if (otherLayer == CrossyLaneConfig.LAYER_CAR) {
+                    hitByCar = true;
+                }
+
+                if (otherLayer == CrossyLaneConfig.LAYER_GOAL) {
+                    reachedGoal = true;
+                }
+            }
+        });
 
         addComponent(new TextureComponent("player_idle.png"));
 
         InputComponent input = new InputComponent();
-        input.bindJustPressed(Keys.UP,    (entity, dt) -> moveUp(entity));
-        input.bindJustPressed(Keys.DOWN,  (entity, dt) -> moveDown(entity));
-        input.bindJustPressed(Keys.LEFT,  (entity, dt) -> moveLeft(entity));
+        input.bindJustPressed(Keys.UP, (entity, dt) -> moveUp(entity));
+        input.bindJustPressed(Keys.DOWN, (entity, dt) -> moveDown(entity));
+        input.bindJustPressed(Keys.LEFT, (entity, dt) -> moveLeft(entity));
         input.bindJustPressed(Keys.RIGHT, (entity, dt) -> moveRight(entity));
         addComponent(input);
     }
 
     private void moveUp(Entity entity) {
-        move(entity, 0, CrossyLaneConfig.GRID_STEP);
+        requestMove(entity, 0f, CrossyLaneConfig.GRID_STEP);
         TextureComponent tex = entity.getComponent(TextureComponent.class);
         if (tex != null) {
             tex.setTexture("player_back.png");
@@ -46,7 +69,7 @@ public class PlayerEntity extends Entity {
     }
 
     private void moveDown(Entity entity) {
-        move(entity, 0, -CrossyLaneConfig.GRID_STEP);
+        requestMove(entity, 0f, -CrossyLaneConfig.GRID_STEP);
         TextureComponent tex = entity.getComponent(TextureComponent.class);
         if (tex != null) {
             tex.setTexture("player_idle.png");
@@ -55,7 +78,7 @@ public class PlayerEntity extends Entity {
     }
 
     private void moveLeft(Entity entity) {
-        move(entity, -CrossyLaneConfig.GRID_STEP, 0);
+        requestMove(entity, -CrossyLaneConfig.GRID_STEP, 0f);
         TextureComponent tex = entity.getComponent(TextureComponent.class);
         if (tex != null) {
             tex.setTexture(nextWalkFrame());
@@ -64,7 +87,7 @@ public class PlayerEntity extends Entity {
     }
 
     private void moveRight(Entity entity) {
-        move(entity, CrossyLaneConfig.GRID_STEP, 0);
+        requestMove(entity, CrossyLaneConfig.GRID_STEP, 0f);
         TextureComponent tex = entity.getComponent(TextureComponent.class);
         if (tex != null) {
             tex.setTexture(nextWalkFrame());
@@ -77,17 +100,15 @@ public class PlayerEntity extends Entity {
         return walkToggle ? "player_walk1.png" : "player_walk2.png";
     }
 
-    private static void move(Entity entity, float dx, float dy) {
-        TransformComponent t = entity.getComponent(TransformComponent.class);
-        if (t == null) return;
+    private void requestMove(Entity entity, float dx, float dy) {
+        TransformComponent transform = entity.getComponent(TransformComponent.class);
+        PhysicsComponent physics = entity.getComponent(PhysicsComponent.class);
 
-        float newX = t.getPositionX() + dx;
-        float newY = t.getPositionY() + dy;
+        if (transform == null || physics == null) {
+            return;
+        }
 
-        newX = Math.max(0f, Math.min(newX, CrossyLaneConfig.WORLD_WIDTH - t.getWidth()));
-        newY = Math.max(0f, Math.min(newY, CrossyLaneConfig.WORLD_HEIGHT - t.getHeight()));
-
-        t.setPosition(newX, newY);
+        movementStrategy.requestMove(transform, physics, dx, dy);
     }
 
     public void resetPosition() {
@@ -95,8 +116,7 @@ public class PlayerEntity extends Entity {
         if (t != null) {
             t.setPosition(
                     CrossyLaneConfig.PLAYER_START_X,
-                    CrossyLaneConfig.PLAYER_START_Y
-            );
+                    CrossyLaneConfig.PLAYER_START_Y);
         }
 
         TextureComponent tex = getComponent(TextureComponent.class);
@@ -105,6 +125,27 @@ public class PlayerEntity extends Entity {
             tex.setFlipX(false);
         }
 
+        PhysicsComponent physics = getComponent(PhysicsComponent.class);
+        movementStrategy.reset(physics);
         walkToggle = false;
+        hitByCar = false;
+        reachedGoal = false;
+    }
+
+    public boolean consumeHitByCar() {
+        boolean result = hitByCar;
+        hitByCar = false;
+        return result;
+    }
+
+    public boolean consumeReachedGoal() {
+        boolean result = reachedGoal;
+        reachedGoal = false;
+        return result;
+    }
+
+    public void clearCollisionFlags() {
+        hitByCar = false;
+        reachedGoal = false;
     }
 }

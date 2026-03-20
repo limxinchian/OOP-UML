@@ -17,7 +17,7 @@ public class CrossyLaneConfig {
     // -------------------------------------------------------------------------
     /** Pixels the player moves per key press. */
     public static final float GRID_STEP = 60f;
-
+    public static final float PLAYER_MOVE_SPEED = 360f;
     // -------------------------------------------------------------------------
     // Entity sizes
     // -------------------------------------------------------------------------

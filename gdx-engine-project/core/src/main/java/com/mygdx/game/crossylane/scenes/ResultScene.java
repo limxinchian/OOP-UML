@@ -10,9 +10,11 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
+import com.mygdx.game.crossylane.state.CrossyLaneSession;
 
 public class ResultScene implements IScene<CrossyLaneSceneKey> {
 
+    private final CrossyLaneSession session;
     private final SceneNavigator navigator;
 
     private ShapeRenderer shapeRenderer;
@@ -25,7 +27,8 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
     private final String[] options = { "RESTART", "MAIN MENU" };
     private int selectedIndex = 0;
 
-    public ResultScene(SceneManager<CrossyLaneSceneKey> sceneManager) {
+    public ResultScene(CrossyLaneSession session, SceneManager<CrossyLaneSceneKey> sceneManager) {
+        this.session = session;
         this.navigator = new SceneNavigator(sceneManager);
     }
 
@@ -36,12 +39,18 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
 
     @Override
     public void onEnter() {
-        if (shapeRenderer == null) shapeRenderer = new ShapeRenderer();
-        if (batch == null) batch = new SpriteBatch();
-        if (titleFont == null) titleFont = new BitmapFont();
-        if (optionFont == null) optionFont = new BitmapFont();
-        if (hintFont == null) hintFont = new BitmapFont();
-        if (layout == null) layout = new GlyphLayout();
+        if (shapeRenderer == null)
+            shapeRenderer = new ShapeRenderer();
+        if (batch == null)
+            batch = new SpriteBatch();
+        if (titleFont == null)
+            titleFont = new BitmapFont();
+        if (optionFont == null)
+            optionFont = new BitmapFont();
+        if (hintFont == null)
+            hintFont = new BitmapFont();
+        if (layout == null)
+            layout = new GlyphLayout();
 
         titleFont.getData().setScale(1.9f);
         optionFont.getData().setScale(1.2f);
@@ -51,20 +60,23 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
     }
 
     @Override
-    public void onExit() {}
+    public void onExit() {
+    }
 
     @Override
     public void update(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.UP)
                 || Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
             selectedIndex--;
-            if (selectedIndex < 0) selectedIndex = options.length - 1;
+            if (selectedIndex < 0)
+                selectedIndex = options.length - 1;
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)
                 || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
             selectedIndex++;
-            if (selectedIndex >= options.length) selectedIndex = 0;
+            if (selectedIndex >= options.length)
+                selectedIndex = 0;
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
@@ -80,7 +92,8 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
     }
 
     @Override
-    public void afterWorldUpdate(float delta) {}
+    public void afterWorldUpdate(float delta) {
+    }
 
     @Override
     public void render() {
@@ -126,9 +139,11 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
 
         // Title
         titleFont.setColor(Color.WHITE);
-        layout.setText(titleFont, "GAME OVER");
+        String title = session.hasPlayerWon() ? "YOU WIN" : "GAME OVER";
+
+        layout.setText(titleFont, title);
         titleFont.draw(batch,
-                "GAME OVER",
+                title,
                 screenW / 2f - layout.width / 2f,
                 screenH / 2f + 130f);
 
@@ -144,7 +159,7 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
                     y + boxHeight / 2f + layout.height / 2f);
         }
 
-        // ⭐ CLEAR, BALANCED YELLOW TEXT (same style as Pause)
+        // CLEAR, BALANCED YELLOW TEXT (same style as Pause)
         hintFont.setColor(1f, 0.92f, 0.2f, 1f);
 
         String bottomText = "Press ENTER to Select";
@@ -153,18 +168,23 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
         hintFont.draw(batch,
                 bottomText,
                 screenW / 2f - layout.width / 2f,
-                panelY + 50f);   // moved higher = clearer
+                panelY + 50f); // moved higher = clearer
 
         batch.end();
     }
 
     @Override
     public void dispose() {
-        if (shapeRenderer != null) shapeRenderer.dispose();
-        if (batch != null) batch.dispose();
-        if (titleFont != null) titleFont.dispose();
-        if (optionFont != null) optionFont.dispose();
-        if (hintFont != null) hintFont.dispose();
+        if (shapeRenderer != null)
+            shapeRenderer.dispose();
+        if (batch != null)
+            batch.dispose();
+        if (titleFont != null)
+            titleFont.dispose();
+        if (optionFont != null)
+            optionFont.dispose();
+        if (hintFont != null)
+            hintFont.dispose();
     }
 
     @Override

@@ -35,12 +35,18 @@ public class PauseScene implements IScene<CrossyLaneSceneKey> {
 
     @Override
     public void onEnter() {
-        if (shapeRenderer == null) shapeRenderer = new ShapeRenderer();
-        if (batch == null) batch = new SpriteBatch();
-        if (titleFont == null) titleFont = new BitmapFont();
-        if (optionFont == null) optionFont = new BitmapFont();
-        if (layout == null) layout = new GlyphLayout();
-        if (hintFont == null) hintFont = new BitmapFont();
+        if (shapeRenderer == null)
+            shapeRenderer = new ShapeRenderer();
+        if (batch == null)
+            batch = new SpriteBatch();
+        if (titleFont == null)
+            titleFont = new BitmapFont();
+        if (optionFont == null)
+            optionFont = new BitmapFont();
+        if (layout == null)
+            layout = new GlyphLayout();
+        if (hintFont == null)
+            hintFont = new BitmapFont();
         hintFont.getData().setScale(0.95f);
 
         titleFont.getData().setScale(1.9f);
@@ -57,12 +63,14 @@ public class PauseScene implements IScene<CrossyLaneSceneKey> {
     public void update(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
             selectedIndex--;
-            if (selectedIndex < 0) selectedIndex = options.length - 1;
+            if (selectedIndex < 0)
+                selectedIndex = options.length - 1;
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
             selectedIndex++;
-            if (selectedIndex >= options.length) selectedIndex = 0;
+            if (selectedIndex >= options.length)
+                selectedIndex = 0;
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -157,19 +165,25 @@ public class PauseScene implements IScene<CrossyLaneSceneKey> {
         layout.setText(hintFont, bottomText);
 
         hintFont.draw(batch,
-        bottomText,
-        screenW / 2f - layout.width / 2f,
-        panelY + 38f);
+                bottomText,
+                screenW / 2f - layout.width / 2f,
+                panelY + 38f);
 
         batch.end();
     }
 
     @Override
     public void dispose() {
-        if (shapeRenderer != null) shapeRenderer.dispose();
-        if (batch != null) batch.dispose();
-        if (titleFont != null) titleFont.dispose();
-        if (optionFont != null) optionFont.dispose();
+        if (shapeRenderer != null)
+            shapeRenderer.dispose();
+        if (batch != null)
+            batch.dispose();
+        if (titleFont != null)
+            titleFont.dispose();
+        if (optionFont != null)
+            optionFont.dispose();
+        if (hintFont != null)
+            hintFont.dispose();
     }
 
     @Override
