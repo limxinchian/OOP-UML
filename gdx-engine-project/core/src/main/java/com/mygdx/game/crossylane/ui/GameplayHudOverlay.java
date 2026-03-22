@@ -31,6 +31,6 @@ public class GameplayHudOverlay {
         outputManager.drawText("Reach the safe zone to score", HUD_RIGHT_X - 120f, HUD_TOP_Y - HUD_LINE_GAP);
 
         outputManager.drawText("Arrow keys / WASD to move", PROMPT_LEFT_X, PROMPT_TOP_Y);
-        outputManager.drawText("Avoid cars and cross lane by lane", PROMPT_LEFT_X, PROMPT_TOP_Y - PROMPT_LINE_GAP);
+        outputManager.drawText("Middle lane light: red = -50, green = +50", PROMPT_LEFT_X, PROMPT_TOP_Y - PROMPT_LINE_GAP);
     }
 }

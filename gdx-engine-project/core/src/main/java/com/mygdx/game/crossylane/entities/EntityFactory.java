@@ -196,30 +196,14 @@ public class EntityFactory {
     }
 
     /**
-     * Creates a traffic light at the left edge of a lane.
-     *
-     * @param laneIndex     0-based lane index
-     * @param redDuration   seconds the light stays red
-     * @param greenDuration seconds the light stays green
+     * Creates the traffic light at its fixed grass location near the controlled lane.
      */
-    public static TrafficLightEntity createTrafficLight(int laneIndex,
-            float redDuration,
-            float greenDuration) {
-        float x = 5f;
-        float y = CrossyLaneConfig.ROAD_START_Y
-                + (laneIndex * CrossyLaneConfig.LANE_HEIGHT)
-                + (CrossyLaneConfig.LANE_HEIGHT - CrossyLaneConfig.TRAFFIC_LIGHT_HEIGHT) / 2f;
-
-        return new TrafficLightEntity(x, y, redDuration, greenDuration);
-    }
-
-    /**
-     * Creates a traffic light using default timing from config.
-     */
-    public static TrafficLightEntity createTrafficLight(int laneIndex) {
-        return createTrafficLight(laneIndex,
-                CrossyLaneConfig.TRAFFIC_LIGHT_RED_DURATION,
-                CrossyLaneConfig.TRAFFIC_LIGHT_GREEN_DURATION);
+    public static TrafficLightEntity createTrafficLight() {
+        return new TrafficLightEntity(
+                CrossyLaneConfig.TRAFFIC_LIGHT_POSITION_X,
+                CrossyLaneConfig.TRAFFIC_LIGHT_POSITION_Y,
+                CrossyLaneConfig.TRAFFIC_LIGHT_WIDTH,
+                CrossyLaneConfig.TRAFFIC_LIGHT_HEIGHT);
     }
 
     /**

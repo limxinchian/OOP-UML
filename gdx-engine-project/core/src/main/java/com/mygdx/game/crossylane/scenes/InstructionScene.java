@@ -93,7 +93,7 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
 
         float textX = panelX + 40f;
         float firstLineY = panelY + panelH - 105f;
-        float lineGap = 48f;
+        float lineGap = 40f;
 
         bodyFont.draw(batch,
                 "1. Use arrow keys to move the chicken.",
@@ -114,6 +114,11 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
                 "4. Reach as far as possible to get a better score.",
                 textX,
                 firstLineY - lineGap * 3);
+
+        bodyFont.draw(batch,
+                "5. Cross the middle lane on green for +50, red for -50.",
+                textX,
+                firstLineY - lineGap * 4);
 
         // BOTTOM TEXT (lowered slightly for spacing)
         bottomFont.setColor(Color.YELLOW);

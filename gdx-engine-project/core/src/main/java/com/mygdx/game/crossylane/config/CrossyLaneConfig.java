@@ -30,8 +30,8 @@ public class CrossyLaneConfig {
     public static final float COIN_SIZE = 20f;
 
     public static final float LANE_MARKER_HEIGHT = 6f;
-    public static final float TRAFFIC_LIGHT_WIDTH  = 20f;
-    public static final float TRAFFIC_LIGHT_HEIGHT = 40f;
+    public static final float TRAFFIC_LIGHT_WIDTH  = 28f;
+    public static final float TRAFFIC_LIGHT_HEIGHT = 56f;
 
     // -------------------------------------------------------------------------
     // Zone heights
@@ -49,6 +49,10 @@ public class CrossyLaneConfig {
 
     /** Number of traffic lanes in the road. */
     public static final int LANE_COUNT = 8;
+    public static final int VISIBLE_ROAD_LANE_COUNT = 3;
+    public static final int CONTROLLED_TRAFFIC_LIGHT_LANE_INDEX = 1;
+    public static final float TRAFFIC_LIGHT_POSITION_X = 300f;
+    public static final float TRAFFIC_LIGHT_POSITION_Y = 4f;
 
     // -------------------------------------------------------------------------
     // Player spawn
@@ -77,8 +81,9 @@ public class CrossyLaneConfig {
     // -------------------------------------------------------------------------
     // Traffic light timing defaults
     // -------------------------------------------------------------------------
-    public static final float TRAFFIC_LIGHT_RED_DURATION   = 4f;
-    public static final float TRAFFIC_LIGHT_GREEN_DURATION = 3f;
+    public static final float TRAFFIC_LIGHT_SWITCH_INTERVAL = 4f;
+    public static final int TRAFFIC_LIGHT_RED_SCORE_PENALTY = -50;
+    public static final int TRAFFIC_LIGHT_GREEN_SCORE_BONUS = 50;
 
     // Prevent instantiation
     private CrossyLaneConfig() {}

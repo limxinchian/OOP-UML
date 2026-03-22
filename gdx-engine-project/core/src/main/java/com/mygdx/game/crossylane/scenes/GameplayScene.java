@@ -15,7 +15,9 @@ import com.mygdx.game.crossylane.entities.GrassZoneEntity;
 import com.mygdx.game.crossylane.entities.LaneMarkerEntity;
 import com.mygdx.game.crossylane.entities.PlayerEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
+import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
 import com.mygdx.game.crossylane.state.CrossyLaneSession;
+import com.mygdx.game.crossylane.traffic.TrafficLightController;
 import com.mygdx.game.crossylane.ui.GameplayHudOverlay;
 import com.mygdx.game.engine.ecs.TransformComponent;
 import com.mygdx.game.engine.managers.CollisionManager;
@@ -32,6 +34,9 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private static final int COIN_SCORE_BONUS = 50;
     private static final int ROAD_COINS_PER_LANE = 2;
     private static final int TOP_PATCH_COIN_COUNT = 5;
+    private static final float TRAFFIC_LIGHT_LABEL_PADDING = 8f;
+    private static final float TRAFFIC_LIGHT_LABEL_WIDTH = 72f;
+    private static final float TRAFFIC_LIGHT_LABEL_HEIGHT = 22f;
 
     private final SceneManager<CrossyLaneSceneKey> sceneManager;
     private final EntityManager entityManager;
@@ -42,6 +47,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private final List<GrassZoneEntity> grassZones = new ArrayList<>();
     private final List<LaneMarkerEntity> laneMarkers = new ArrayList<>();
     private final List<CoinEntity> coins = new ArrayList<>();
+    private TrafficLightEntity trafficLight;
+    private TrafficLightController trafficLightController;
     private GoalZoneEntity goalZone;
     private final GameplayHudOverlay hudOverlay = new GameplayHudOverlay();
 
@@ -59,6 +66,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     private static final float PLAYER_START_Y = CrossyLaneConfig.PLAYER_START_Y;
 
     private boolean worldInitialized = false;
+    private int previousPlayerLaneIndex = TrafficLightController.NO_LANE_INDEX;
 
     public GameplayScene(
             CrossyLaneSession session,
@@ -101,6 +109,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         grassZones.clear();
         laneMarkers.clear();
         coins.clear();
+        trafficLight = null;
+        trafficLightController = null;
         goalZone = null;
 
         resetHudState();
@@ -137,8 +147,17 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
             entityManager.addEntity(coin);
         }
 
+        trafficLightController = new TrafficLightController(
+                CrossyLaneConfig.CONTROLLED_TRAFFIC_LIGHT_LANE_INDEX,
+                CrossyLaneConfig.TRAFFIC_LIGHT_SWITCH_INTERVAL,
+                CrossyLaneConfig.TRAFFIC_LIGHT_RED_SCORE_PENALTY,
+                CrossyLaneConfig.TRAFFIC_LIGHT_GREEN_SCORE_BONUS);
+        trafficLight = EntityFactory.createTrafficLight();
+        entityManager.addEntity(trafficLight);
+
         player = EntityFactory.createPlayer();
         entityManager.addEntity(player);
+        previousPlayerLaneIndex = getPlayerLaneIndex();
     }
 
     public void resetGame() {
@@ -173,6 +192,12 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         }
         coins.clear();
 
+        if (trafficLight != null) {
+            entityManager.removeEntity(trafficLight);
+            trafficLight = null;
+        }
+        trafficLightController = null;
+
         if (goalZone != null) {
             entityManager.removeEntity(goalZone);
             goalZone = null;
@@ -182,6 +207,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
             entityManager.removeEntity(player);
             player = null;
         }
+
+        previousPlayerLaneIndex = TrafficLightController.NO_LANE_INDEX;
     }
 
     @Override
@@ -189,6 +216,10 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             sceneManager.pushScene(CrossyLaneSceneKey.PAUSE);
             return;
+        }
+
+        if (trafficLightController != null) {
+            trafficLightController.tick(delta);
         }
 
         wrapCars();
@@ -201,11 +232,12 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
                 return;
             }
 
-        if (player.consumeReachedGoal()) {
-            handleGoalReached();
-        }
+            if (player.consumeReachedGoal()) {
+                handleGoalReached();
+                return;
+            }
 
-        checkCoinCollisions();
+            checkCoinCollisions();
         }
     }
 
@@ -226,6 +258,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         if (player != null) {
             player.resetPosition();
         }
+        previousPlayerLaneIndex = getPlayerLaneIndex();
     }
 
     private void handleGoalReached() {
@@ -333,6 +366,8 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     @Override
     public void afterWorldUpdate(float delta) {
+        applyTrafficLightScore();
+        previousPlayerLaneIndex = getPlayerLaneIndex();
     }
 
     @Override
@@ -345,8 +380,10 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         shapeRenderer.end();
 
         ioManager.getOutput().renderEntities(entityManager.getEntities());
+        renderTrafficLightLabel();
         ioManager.getOutput().beginTextOverlay();
         hudOverlay.render(ioManager.getOutput(), displayedScore, displayedLives, displayedLevel);
+        renderTrafficLightStatusText();
         ioManager.getOutput().endTextOverlay();
     }
 
@@ -360,7 +397,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     }
 
     private int getPlayableLaneCount() {
-        return 3;
+        return CrossyLaneConfig.VISIBLE_ROAD_LANE_COUNT;
     }
 
     private float getRoadHeight() {
@@ -369,6 +406,74 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     private float getRoadTopY() {
         return CrossyLaneConfig.ROAD_START_Y + getRoadHeight();
+    }
+
+    private void applyTrafficLightScore() {
+        if (player == null || trafficLightController == null) {
+            return;
+        }
+
+        displayedScore += trafficLightController.scoreForLaneEntry(
+                previousPlayerLaneIndex,
+                getPlayerLaneIndex());
+    }
+
+    private int getPlayerLaneIndex() {
+        if (player == null) {
+            return TrafficLightController.NO_LANE_INDEX;
+        }
+
+        TransformComponent transform = player.getComponent(TransformComponent.class);
+        if (transform == null) {
+            return TrafficLightController.NO_LANE_INDEX;
+        }
+
+        float playerCenterY = transform.getPositionY() + (transform.getHeight() / 2f);
+        float roadBottomY = CrossyLaneConfig.ROAD_START_Y;
+        float roadTopY = getRoadTopY();
+
+        if (playerCenterY < roadBottomY || playerCenterY >= roadTopY) {
+            return TrafficLightController.NO_LANE_INDEX;
+        }
+
+        return (int) ((playerCenterY - roadBottomY) / CrossyLaneConfig.LANE_HEIGHT);
+    }
+
+    private void renderTrafficLightLabel() {
+        if (trafficLight == null || trafficLightController == null) {
+            return;
+        }
+
+        TransformComponent transform = trafficLight.getComponent(TransformComponent.class);
+        if (transform == null) {
+            return;
+        }
+
+        float labelX = transform.getPositionX() + (transform.getWidth() - TRAFFIC_LIGHT_LABEL_WIDTH) / 2f;
+        float labelY = transform.getTop() + TRAFFIC_LIGHT_LABEL_PADDING;
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0f, 0f, 0f, 0.7f);
+        shapeRenderer.rect(labelX, labelY, TRAFFIC_LIGHT_LABEL_WIDTH, TRAFFIC_LIGHT_LABEL_HEIGHT);
+        shapeRenderer.end();
+    }
+
+    private void renderTrafficLightStatusText() {
+        if (trafficLight == null || trafficLightController == null) {
+            return;
+        }
+
+        TransformComponent transform = trafficLight.getComponent(TransformComponent.class);
+        if (transform == null) {
+            return;
+        }
+
+        float centerX = transform.getPositionX() + (transform.getWidth() / 2f);
+        float baselineY = transform.getTop() + TRAFFIC_LIGHT_LABEL_PADDING + 16f;
+        ioManager.getOutput().drawCenteredText(
+                trafficLightController.getCurrentPhaseName(),
+                centerX,
+                baselineY);
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.util.List;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.engine.ecs.Entity;
@@ -15,6 +16,7 @@ public class OutputManager {
     private ShapeRenderer shapeRenderer;
     private SpriteBatch spriteBatch;
     private BitmapFont font;
+    private GlyphLayout glyphLayout;
 
     public void initialize() {
         if (shapeRenderer == null) {
@@ -25,6 +27,9 @@ public class OutputManager {
         }
         if (font == null) {
             font = new BitmapFont();
+        }
+        if (glyphLayout == null) {
+            glyphLayout = new GlyphLayout();
         }
     }
 
@@ -101,6 +106,11 @@ public class OutputManager {
 
     public void drawText(String text, float x, float y) {
         font.draw(spriteBatch, text, x, y);
+    }
+
+    public void drawCenteredText(String text, float centerX, float y) {
+        glyphLayout.setText(font, text);
+        font.draw(spriteBatch, text, centerX - (glyphLayout.width / 2f), y);
     }
 
     public void endTextOverlay() {
