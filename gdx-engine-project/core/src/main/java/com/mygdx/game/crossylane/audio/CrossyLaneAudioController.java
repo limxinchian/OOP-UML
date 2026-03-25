@@ -16,8 +16,8 @@ public class CrossyLaneAudioController {
 
     private static final String MUSIC_MENU      = "music_menu.mp3";
     private static final String MUSIC_GAMEPLAY  = "music_gameplay.mp3";
-    private static final String MUSIC_WIN       = "music_win.mp3";
-    private static final String MUSIC_LOSE      = "music_lose.mp3";
+    private static final String MUSIC_WIN       = "music_win.wav";
+    private static final String MUSIC_LOSE      = "music_lose.wav";
 
     private final AudioManager audioManager;
     private final EventBus eventBus;
