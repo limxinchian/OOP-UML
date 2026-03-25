@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.mygdx.game.crossylane.audio.CrossyLaneAudioController;
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.crossylane.config.LaneDefinition;
 import com.mygdx.game.crossylane.config.LevelDefinition;
@@ -13,37 +14,29 @@ import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
 import com.mygdx.game.engine.event.EventBus;
 
-/**
- * Factory class for creating all CrossyLane game entities.
- *
- * Design Pattern: Factory Method
- * -----------------------------------------------------------------------
- * Centralises entity construction so that game scenes never need to know
- * which components each entity requires.
- *
- * Phase 4 changes:
- * - Added createLaneTrafficLight(int laneIndex) which positions the traffic
- *   light entity beside its controlled lane on the right edge of the road.
- * - Removed the old createTrafficLight() that used fixed config coordinates.
- */
 public class EntityFactory {
+
     private static final float COIN_SIDE_MARGIN = 60f;
 
     private EntityFactory() {}
 
     // =========================================================================
-    // Player
+    // Player (UPDATED)
     // =========================================================================
 
-    public static PlayerEntity createPlayer(EventBus eventBus) {
+    public static PlayerEntity createPlayer(EventBus eventBus,
+                                            CrossyLaneAudioController audioController) {
         return new PlayerEntity(
                 CrossyLaneConfig.PLAYER_START_X,
                 CrossyLaneConfig.PLAYER_START_Y,
-                eventBus);
+                eventBus,
+                audioController);
     }
 
-    public static PlayerEntity createPlayer(float x, float y, EventBus eventBus) {
-        return new PlayerEntity(x, y, eventBus);
+    public static PlayerEntity createPlayer(float x, float y,
+                                            EventBus eventBus,
+                                            CrossyLaneAudioController audioController) {
+        return new PlayerEntity(x, y, eventBus, audioController);
     }
 
     // =========================================================================
@@ -130,16 +123,9 @@ public class EntityFactory {
     }
 
     // =========================================================================
-    // Traffic lights (per-lane)
+    // Traffic lights
     // =========================================================================
 
-    /**
-     * Creates a traffic light entity positioned beside the specified lane.
-     * The light is placed at the right edge of the road, vertically centred
-     * within the lane.
-     *
-     * @param laneIndex 0-based lane that this light controls
-     */
     public static TrafficLightEntity createLaneTrafficLight(int laneIndex) {
         float laneY = CrossyLaneConfig.ROAD_START_Y
                 + (laneIndex * CrossyLaneConfig.LANE_HEIGHT);
@@ -154,7 +140,7 @@ public class EntityFactory {
     }
 
     // =========================================================================
-    // Additional / optional entities
+    // Additional entities
     // =========================================================================
 
     public static CoinEntity createCoin(float x, float y, EventBus eventBus) {
