@@ -1,0 +1,143 @@
+package com.mygdx.game.crossylane.scenes;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.mygdx.game.engine.managers.IOManager;
+import com.mygdx.game.engine.render.FontManager;
+import com.mygdx.game.engine.scene.IScene;
+import com.mygdx.game.engine.scene.SceneManager;
+
+/**
+ * Instructions / How-To-Play screen.
+ *
+ * Phase 3 changes:
+ * - Fonts loaded through engine's FontManager.
+ * - Updated instruction text to reflect WASD + arrow key + mouse support.
+ */
+public class InstructionScene implements IScene<CrossyLaneSceneKey> {
+
+    private final SceneNavigator navigator;
+    private final IOManager ioManager;
+
+    private ShapeRenderer shapeRenderer;
+    private SpriteBatch batch;
+    private GlyphLayout layout;
+
+    private BitmapFont titleFont;
+    private BitmapFont bodyFont;
+    private BitmapFont bottomFont;
+
+    public InstructionScene(SceneManager<CrossyLaneSceneKey> sceneManager, IOManager ioManager) {
+        this.navigator = new SceneNavigator(sceneManager);
+        this.ioManager = ioManager;
+    }
+
+    @Override
+    public CrossyLaneSceneKey getKey() {
+        return CrossyLaneSceneKey.INSTRUCTIONS;
+    }
+
+    @Override
+    public void onEnter() {
+        if (shapeRenderer == null) shapeRenderer = new ShapeRenderer();
+        if (batch == null) batch = new SpriteBatch();
+        if (layout == null) layout = new GlyphLayout();
+
+        FontManager fonts = ioManager.getFontManager();
+        titleFont  = fonts.getFont("default", 26);
+        bodyFont   = fonts.getFont("default", 16);
+        bottomFont = fonts.getFont("default", 15);
+    }
+
+    @Override
+    public void onExit() { }
+
+    @Override
+    public void update(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            navigator.goToMainMenu();
+        }
+    }
+
+    @Override
+    public void afterWorldUpdate(float delta) { }
+
+    @Override
+    public void render() {
+        float screenW = Gdx.graphics.getWidth();
+        float screenH = Gdx.graphics.getHeight();
+
+        Gdx.gl.glClearColor(0.08f, 0.12f, 0.20f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        float panelX = 60f;
+        float panelY = 60f;
+        float panelW = screenW - 120f;
+        float panelH = screenH - 120f;
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.15f, 0.22f, 0.35f, 1f);
+        shapeRenderer.rect(panelX, panelY, panelW, panelH);
+        shapeRenderer.end();
+
+        batch.begin();
+
+        // Title
+        titleFont.setColor(Color.WHITE);
+        layout.setText(titleFont, "HOW TO PLAY");
+        titleFont.draw(batch, "HOW TO PLAY",
+                screenW / 2f - layout.width / 2f,
+                panelY + panelH - 40f);
+
+        // Instructions
+        bodyFont.setColor(Color.WHITE);
+        float textX = panelX + 40f;
+        float firstLineY = panelY + panelH - 105f;
+        float lineGap = 40f;
+
+        bodyFont.draw(batch,
+                "1. Use arrow keys or WASD to move the chicken.",
+                textX, firstLineY);
+        bodyFont.draw(batch,
+                "2. Do not get hit by cars or other hazards.",
+                textX, firstLineY - lineGap);
+        bodyFont.draw(batch,
+                "3. Press ESC during gameplay to pause the game.",
+                textX, firstLineY - lineGap * 2);
+        bodyFont.draw(batch,
+                "4. Reach the goal zone at the top to advance a level.",
+                textX, firstLineY - lineGap * 3);
+        bodyFont.draw(batch,
+                "5. Cross the middle lane on green for +50, red for -50.",
+                textX, firstLineY - lineGap * 4);
+        bodyFont.draw(batch,
+                "6. Navigate menus with keyboard or mouse click.",
+                textX, firstLineY - lineGap * 5);
+
+        // Bottom hint
+        bottomFont.setColor(Color.YELLOW);
+        String bottomText = "Press ESC to return to Main Menu";
+        layout.setText(bottomFont, bottomText);
+        bottomFont.draw(batch, bottomText,
+                screenW / 2f - layout.width / 2f, panelY + 25f);
+
+        batch.end();
+    }
+
+    @Override
+    public void dispose() {
+        if (shapeRenderer != null) shapeRenderer.dispose();
+        if (batch != null) batch.dispose();
+    }
+
+    @Override
+    public boolean updatesWorld() {
+        return false;
+    }
+}
