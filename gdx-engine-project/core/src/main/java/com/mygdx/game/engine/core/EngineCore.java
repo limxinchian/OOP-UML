@@ -1,5 +1,6 @@
 package com.mygdx.game.engine.core;
 
+import com.mygdx.game.engine.event.EventBus;
 import com.mygdx.game.engine.managers.CollisionManager;
 import com.mygdx.game.engine.managers.EntityManager;
 import com.mygdx.game.engine.managers.IOManager;
@@ -9,9 +10,15 @@ import com.mygdx.game.engine.scene.SceneManager;
 
 /**
  * EngineCore (non-contextual):
- * Owns the engine managers + scene manager and runs the standard frame pipeline.
+ * Owns the engine managers, event bus, and scene manager, then runs
+ * the standard frame pipeline.
  *
  * K = scene key type (enum/string/etc).
+ *
+ * Change log (Part 2 refactor):
+ * - Added EventBus as a core engine service (Observer pattern).
+ *   This gives scenes and entities a decoupled publish-subscribe channel
+ *   without requiring direct references to each other.
  */
 public class EngineCore<K> {
 
@@ -19,6 +26,7 @@ public class EngineCore<K> {
     private final MovementManager movementManager;
     private final CollisionManager collisionManager;
     private final IOManager ioManager;
+    private final EventBus eventBus;
 
     private final SceneManager<K> sceneManager;
 
@@ -30,6 +38,7 @@ public class EngineCore<K> {
         this.movementManager = new MovementManager(entityManager);
         this.collisionManager = new CollisionManager(entityManager);
         this.ioManager = new IOManager(entityManager);
+        this.eventBus = new EventBus();
         this.sceneManager = new SceneManager<>();
     }
 
@@ -41,10 +50,6 @@ public class EngineCore<K> {
 
         if (initialized) return;
 
-        // Dependency-friendly init order:
-        // 1) Entity registry
-        // 2) World systems that read/write entities
-        // 3) IO (input/output)
         entityManager.initialize();
         movementManager.initialize();
         collisionManager.initialize();
@@ -67,21 +72,16 @@ public class EngineCore<K> {
     public void tick(float dt) {
         ensureInitialized();
 
-        // 1) Scene pre-world update (spawning, gravity, scene switching inputs)
         sceneManager.update(dt);
 
-        // 2) World managers update (only if current scene allows it)
         IScene<K> current = sceneManager.getCurrentScene();
         if (current != null && current.updatesWorld()) {
-            // Flush scene spawns/removals first so systems see a consistent world this frame
             entityManager.update(0f);
-
             ioManager.update(dt);
             movementManager.update(dt);
             collisionManager.update(dt);
         }
 
-        // 3) Scene post-world update (collision/out-of-bounds checks etc.)
         sceneManager.afterWorldUpdate(dt);
     }
 
@@ -99,14 +99,14 @@ public class EngineCore<K> {
     public void dispose() {
         if (disposed) return;
 
-        // Dispose scenes first while managers still exist (safer for future scenes).
         sceneManager.dispose();
 
-        // Reverse shutdown order (opposite of initialize)
         ioManager.shutdown();
         collisionManager.shutdown();
         movementManager.shutdown();
         entityManager.shutdown();
+
+        eventBus.clear();
 
         initialized = false;
         disposed = true;
@@ -127,10 +127,11 @@ public class EngineCore<K> {
         }
     }
 
-    // --- Accessors (so demo code can wire scenes) ---
+    // --- Accessors ---
     public EntityManager getEntityManager() { return entityManager; }
     public MovementManager getMovementManager() { return movementManager; }
     public CollisionManager getCollisionManager() { return collisionManager; }
     public IOManager getIoManager() { return ioManager; }
+    public EventBus getEventBus() { return eventBus; }
     public SceneManager<K> getSceneManager() { return sceneManager; }
 }

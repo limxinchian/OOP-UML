@@ -5,5 +5,6 @@ public enum CrossyLaneSceneKey {
     INSTRUCTIONS,
     GAMEPLAY,
     PAUSE,
-    RESULT
+    RESULT,
+    CUSTOM_SETUP
 }

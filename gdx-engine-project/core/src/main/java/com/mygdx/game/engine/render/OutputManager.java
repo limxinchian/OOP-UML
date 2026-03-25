@@ -4,58 +4,131 @@ import java.util.List;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.TransformComponent;
 
-/**
- * Output side of IO:
- * draws all entities that have TransformComponent + RenderableComponent.
- */
 public class OutputManager {
 
     private ShapeRenderer shapeRenderer;
+    private SpriteBatch spriteBatch;
+    private BitmapFont font;
+    private GlyphLayout glyphLayout;
 
     public void initialize() {
         if (shapeRenderer == null) {
             shapeRenderer = new ShapeRenderer();
+        }
+        if (spriteBatch == null) {
+            spriteBatch = new SpriteBatch();
+        }
+        if (font == null) {
+            font = new BitmapFont();
+        }
+        if (glyphLayout == null) {
+            glyphLayout = new GlyphLayout();
         }
     }
 
     public void beginFrame(float r, float g, float b, float a) {
         Gdx.gl.glClearColor(r, g, b, a);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
     }
 
-    public void renderEntities(List<Entity> entities) {
-        for (Entity e : entities) {
-            if (!e.isActive()) continue;
+ public void renderEntities(List<Entity> entities) {
+    // 1. Draw shape-based entities first
+    shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+    for (Entity e : entities) {
+        if (!e.isActive())
+            continue;
 
-            TransformComponent t = e.getComponent(TransformComponent.class);
-            RenderableComponent rc = e.getComponent(RenderableComponent.class);
+        TransformComponent t = e.getComponent(TransformComponent.class);
+        RenderableComponent rc = e.getComponent(RenderableComponent.class);
+        TextureComponent tex = e.getComponent(TextureComponent.class);
 
-            if (t == null || rc == null || !rc.isEnabled()) continue;
+        if (tex != null && tex.isEnabled())
+            continue;
+        if (t == null || rc == null || !rc.isEnabled())
+            continue;
 
-            shapeRenderer.setColor(rc.r(), rc.g(), rc.b(), rc.a());
+        shapeRenderer.setColor(rc.r(), rc.g(), rc.b(), rc.a());
 
-            if (rc.getShape() == RenderShape.RECTANGLE) {
-                shapeRenderer.rect(t.getPositionX(), t.getPositionY(), t.getWidth(), t.getHeight());
-            } else if (rc.getShape() == RenderShape.CIRCLE) {
-                float radius = rc.getRadius();
-                shapeRenderer.circle(t.getPositionX() + radius, t.getPositionY() + radius, radius);
-            }
+        if (rc.getShape() == RenderShape.RECTANGLE) {
+            shapeRenderer.rect(t.getPositionX(), t.getPositionY(), t.getWidth(), t.getHeight());
+        } else if (rc.getShape() == RenderShape.CIRCLE) {
+            float radius = rc.getRadius();
+            shapeRenderer.circle(t.getPositionX() + radius, t.getPositionY() + radius, radius);
         }
     }
+    shapeRenderer.end();
+
+    // 2. Draw textured entities last
+    spriteBatch.begin();
+    for (Entity e : entities) {
+        if (!e.isActive())
+            continue;
+
+        TransformComponent t = e.getComponent(TransformComponent.class);
+        TextureComponent tex = e.getComponent(TextureComponent.class);
+
+        if (t == null || tex == null || !tex.isEnabled())
+            continue;
+
+        if (tex.isFlipX()) {
+            spriteBatch.draw(
+                    tex.getTexture(),
+                    t.getPositionX() + t.getWidth(),
+                    t.getPositionY(),
+                    -t.getWidth(),
+                    t.getHeight());
+        } else {
+            spriteBatch.draw(
+                    tex.getTexture(),
+                    t.getPositionX(),
+                    t.getPositionY(),
+                    t.getWidth(),
+                    t.getHeight());
+        }
+    }
+    spriteBatch.end();
+}
 
     public void endFrame() {
-        shapeRenderer.end();
+        // no-op, kept for compatibility
+    }
+
+    public void beginTextOverlay() {
+        spriteBatch.begin();
+    }
+
+    public void drawText(String text, float x, float y) {
+        font.draw(spriteBatch, text, x, y);
+    }
+
+    public void drawCenteredText(String text, float centerX, float y) {
+        glyphLayout.setText(font, text);
+        font.draw(spriteBatch, text, centerX - (glyphLayout.width / 2f), y);
+    }
+
+    public void endTextOverlay() {
+        spriteBatch.end();
     }
 
     public void dispose() {
         if (shapeRenderer != null) {
             shapeRenderer.dispose();
             shapeRenderer = null;
+        }
+        if (spriteBatch != null) {
+            spriteBatch.dispose();
+            spriteBatch = null;
+        }
+        if (font != null) {
+            font.dispose();
+            font = null;
         }
     }
 }

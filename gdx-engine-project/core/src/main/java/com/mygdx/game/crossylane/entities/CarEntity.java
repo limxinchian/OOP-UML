@@ -1,24 +1,52 @@
 package com.mygdx.game.crossylane.entities;
 
-import com.mygdx.game.engine.ecs.Entity;
+import java.util.concurrent.ThreadLocalRandom;
+
+import com.mygdx.game.engine.movement.BasicMovementStrategy;
+import com.mygdx.game.engine.movement.MovementComponent;
+import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.engine.collision.CollisionComponent;
+import com.mygdx.game.engine.ecs.Entity;
 import com.mygdx.game.engine.ecs.PhysicsComponent;
-import com.mygdx.game.engine.render.RenderableComponent;
 import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.render.TextureComponent;
 
 public class CarEntity extends Entity {
 
+    private static final String[] CAR_TEXTURES = {
+            "ambulance.png",
+            "bus.png",
+            "police.png",
+            "van_small.png"
+    };
+
     private final float speed;
-    private final int direction; // 1 = left to right, -1 = right to left
+    private final int direction;
 
     public CarEntity(float x, float y, float width, float height, float speed, int direction) {
         this.speed = speed;
         this.direction = direction;
 
         addComponent(new TransformComponent(x, y, width, height));
+
+        addComponent(new CollisionComponent(
+                CrossyLaneConfig.LAYER_CAR,
+                CrossyLaneConfig.MASK_CAR,
+                true
+        ));
+
         addComponent(new PhysicsComponent(speed * direction, 0f, 1f));
-        addComponent(new CollisionComponent(1, false));
-        addComponent(RenderableComponent.rectangle(0.9f, 0.3f, 0.2f, 1f));
+        addComponent(new MovementComponent(new BasicMovementStrategy()));
+        
+        String texturePath = pickRandomTexture();
+        TextureComponent textureComponent = new TextureComponent(texturePath);
+        textureComponent.setFlipX(direction < 0);
+        addComponent(textureComponent);
+    }
+
+    private String pickRandomTexture() {
+        int index = ThreadLocalRandom.current().nextInt(CAR_TEXTURES.length);
+        return CAR_TEXTURES[index];
     }
 
     public float getSpeed() {

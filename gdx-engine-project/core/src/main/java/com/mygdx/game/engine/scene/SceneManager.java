@@ -239,6 +239,10 @@ public class SceneManager<K> {
         return currentScene;
     }
 
+    public IScene<K> getScene(K key) {
+        return scenes.get(key);
+    }
+
     public int getRegisteredSceneCount() {
         return scenes.size();
     }
