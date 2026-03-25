@@ -114,7 +114,7 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
                 "4. Reach the goal zone at the top to advance a level.",
                 textX, firstLineY - lineGap * 3);
         bodyFont.draw(batch,
-                "5. Cross the middle lane on green for +50, red for -50.",
+                "5. Enter the road on green for bonus points, red for a penalty.",
                 textX, firstLineY - lineGap * 4);
         bodyFont.draw(batch,
                 "6. Navigate menus with keyboard or mouse click.",

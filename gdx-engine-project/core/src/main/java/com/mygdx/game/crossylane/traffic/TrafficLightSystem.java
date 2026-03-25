@@ -19,7 +19,7 @@ import com.mygdx.game.engine.event.EventBus;
 import com.mygdx.game.engine.managers.EntityManager;
 
 /**
- * Manages all per-lane traffic lights for the current level.
+ * Manages the traffic lights for the current level.
  *
  * Phase 6 changes:
  * - Accepts an optional EventBus. When provided, publishes a
@@ -73,7 +73,7 @@ public class TrafficLightSystem {
                     def.getRedScoreDelta(),
                     def.getGreenScoreDelta());
 
-            TrafficLightEntity entity = EntityFactory.createLaneTrafficLight(def.getControlledLaneIndex());
+            TrafficLightEntity entity = EntityFactory.createStartLineTrafficLight();
             entityManager.addEntity(entity);
 
             lights.add(new LaneTrafficLight(controller, entity));

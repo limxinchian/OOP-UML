@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class TrafficLightControllerTest {
-    private static final int CONTROLLED_LANE = 1;
+    private static final int CONTROLLED_LANE = 0;
     private static final float SWITCH_INTERVAL = 4f;
     private static final int RED_SCORE_DELTA = -50;
     private static final int GREEN_SCORE_DELTA = 50;
@@ -32,7 +32,8 @@ public class TrafficLightControllerTest {
     public void deductsScoreWhenEnteringControlledLaneOnRed() {
         TrafficLightController controller = createController();
 
-        assertEquals(RED_SCORE_DELTA, controller.scoreForLaneEntry(0, CONTROLLED_LANE));
+        assertEquals(RED_SCORE_DELTA, controller.scoreForLaneEntry(
+                TrafficLightController.NO_LANE_INDEX, CONTROLLED_LANE));
     }
 
     @Test
@@ -40,7 +41,8 @@ public class TrafficLightControllerTest {
         TrafficLightController controller = createController();
         controller.tick(SWITCH_INTERVAL);
 
-        assertEquals(GREEN_SCORE_DELTA, controller.scoreForLaneEntry(0, CONTROLLED_LANE));
+        assertEquals(GREEN_SCORE_DELTA, controller.scoreForLaneEntry(
+                TrafficLightController.NO_LANE_INDEX, CONTROLLED_LANE));
     }
 
     @Test
@@ -54,11 +56,23 @@ public class TrafficLightControllerTest {
     public void scoresAgainAfterLeavingAndReEnteringControlledLane() {
         TrafficLightController controller = createController();
 
-        assertEquals(RED_SCORE_DELTA, controller.scoreForLaneEntry(0, CONTROLLED_LANE));
+        assertEquals(RED_SCORE_DELTA, controller.scoreForLaneEntry(
+                TrafficLightController.NO_LANE_INDEX, CONTROLLED_LANE));
         assertEquals(0, controller.scoreForLaneEntry(CONTROLLED_LANE, 2));
+        assertEquals(0, controller.scoreForLaneEntry(2, CONTROLLED_LANE));
 
         controller.tick(SWITCH_INTERVAL);
-        assertEquals(GREEN_SCORE_DELTA, controller.scoreForLaneEntry(2, CONTROLLED_LANE));
+        assertEquals(0, controller.scoreForLaneEntry(2, TrafficLightController.NO_LANE_INDEX));
+        assertEquals(GREEN_SCORE_DELTA, controller.scoreForLaneEntry(
+                TrafficLightController.NO_LANE_INDEX, CONTROLLED_LANE));
+    }
+
+    @Test
+    public void doesNotScoreWhenMovingBetweenRoadLanes() {
+        TrafficLightController controller = createController();
+
+        assertEquals(0, controller.scoreForLaneEntry(0, 1));
+        assertEquals(0, controller.scoreForLaneEntry(1, 0));
     }
 
     private TrafficLightController createController() {
