@@ -11,25 +11,18 @@ import com.mygdx.game.crossylane.scenes.GameplayScene;
 import com.mygdx.game.crossylane.scenes.InstructionScene;
 import com.mygdx.game.crossylane.scenes.MainMenuScene;
 import com.mygdx.game.crossylane.scenes.ResultScene;
+import com.mygdx.game.crossylane.scenes.Settings;
 import com.mygdx.game.crossylane.scenes.PauseScene;
 import com.mygdx.game.engine.core.EngineCore;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.scene.SceneManager;
 
-/**
- * Application entry point — bootstraps the engine and registers all game scenes.
- *
- * Phase 6 changes:
- * - Creates CrossyLaneAudioController and subscribes it to the EventBus.
- * - Passes audioController to MainMenuScene, PauseScene, GameplayScene,
- *   and ResultScene so each can trigger the correct background music.
- * - Unsubscribes audioController on dispose.
- */
 public class GameMaster extends ApplicationAdapter {
 
     private EngineCore<CrossyLaneSceneKey> engine;
     private CrossyLaneSession session;
     private CrossyLaneAudioController audioController;
+    private IOManager ioManager;   // <-- add this
 
     @Override
     public void create() {
@@ -37,10 +30,9 @@ public class GameMaster extends ApplicationAdapter {
         session = new CrossyLaneSession();
 
         SceneManager<CrossyLaneSceneKey> sceneManager = engine.getSceneManager();
-        IOManager ioManager = engine.getIoManager();
+        ioManager = engine.getIoManager();   // <-- no IOManager in front
         LevelRegistry levelRegistry = LevelRegistry.createDefaultLevels();
 
-        // Create and subscribe the centralised audio controller
         audioController = new CrossyLaneAudioController(
                 ioManager.getAudio(), engine.getEventBus());
         audioController.subscribe();
@@ -64,6 +56,12 @@ public class GameMaster extends ApplicationAdapter {
 
         sceneManager.registerScene(new ResultScene(
                 session, sceneManager, ioManager, levelRegistry, audioController));
+        
+        sceneManager.registerScene(new Settings(
+        sceneManager,
+        ioManager,
+        audioController
+        ));
 
         engine.initialize();
         engine.startScene(CrossyLaneSceneKey.MAIN_MENU);
@@ -74,6 +72,13 @@ public class GameMaster extends ApplicationAdapter {
         float dt = Gdx.graphics.getDeltaTime();
         engine.tick(dt);
         engine.render();
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        if (ioManager != null) {
+            ioManager.getOutput().resize(width, height);
+        }
     }
 
     @Override

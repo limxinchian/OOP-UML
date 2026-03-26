@@ -8,11 +8,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.mygdx.game.crossylane.config.CrossyLaneConfig;
 import com.mygdx.game.crossylane.config.LaneDefinition;
 import com.mygdx.game.crossylane.config.LevelDefinition;
 import com.mygdx.game.crossylane.config.TrafficLightDefinition;
@@ -23,24 +23,6 @@ import com.mygdx.game.engine.render.FontManager;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
-/**
- * Custom Level / Sandbox setup screen.
- *
- * Lets the player configure vehicle speed, number of lanes, and vehicles
- * per lane, then launches a one-off level with those parameters.
- *
- * This scene explicitly showcases engine scalability: the player can set
- * any combination (1–5 lanes, 1–6 vehicles, 80–400 px/s speed) and the
- * engine handles it without any special-casing. The configured values are
- * wrapped in a standard LevelDefinition and fed to the same GameplayScene
- * that handles registry levels — zero code branches for "custom" vs "normal".
- *
- * Controls:
- * - UP/DOWN or mouse hover to select a parameter row
- * - LEFT/RIGHT or mouse click on [-]/[+] to adjust values
- * - ENTER or click START to launch
- * - ESC to return to main menu
- */
 public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
 
     private final SceneNavigator navigator;
@@ -50,16 +32,16 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
     private GlyphLayout layout;
+    private OrthographicCamera uiCamera;
 
     private BitmapFont titleFont;
     private BitmapFont labelFont;
     private BitmapFont valueFont;
     private BitmapFont hintFont;
 
-    // -- Configurable parameters ------------------------------------------------
     private int laneCount = 3;
     private int vehiclesPerLane = 2;
-    private int speedLevel = 2;          // index into SPEED_OPTIONS
+    private int speedLevel = 2;
 
     private static final int MIN_LANES = 1;
     private static final int MAX_LANES = 5;
@@ -67,16 +49,10 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
     private static final int MAX_VEHICLES = 6;
 
     private static final String[] SPEED_LABELS = { "Slow", "Medium", "Fast", "Very Fast", "Insane" };
-    private static final float[]  SPEED_VALUES = { 100f,   180f,    260f,   340f,         420f };
+    private static final float[] SPEED_VALUES = { 100f, 180f, 260f, 340f, 420f };
 
-    // -- UI layout --------------------------------------------------------------
-    private static final int ROW_COUNT = 4;     // 3 params + START button
+    private static final int ROW_COUNT = 4;
     private int selectedRow = 0;
-
-    private static final float ROW_HEIGHT = 52f;
-    private static final float ROW_GAP = 14f;
-    private static final float PANEL_WIDTH = 520f;
-    private static final float BTN_SIZE = 36f;
 
     public CustomSetupScene(SceneManager<CrossyLaneSceneKey> sceneManager,
                             IOManager ioManager,
@@ -96,6 +72,7 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         if (shapeRenderer == null) shapeRenderer = new ShapeRenderer();
         if (batch == null) batch = new SpriteBatch();
         if (layout == null) layout = new GlyphLayout();
+        if (uiCamera == null) uiCamera = new OrthographicCamera();
 
         FontManager fonts = ioManager.getFontManager();
         titleFont = fonts.getFont("default", 26);
@@ -103,7 +80,6 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         valueFont = fonts.getFont("default", 20);
         hintFont  = fonts.getFont("default", 13);
 
-        // Reset to sensible defaults
         laneCount = 3;
         vehiclesPerLane = 2;
         speedLevel = 2;
@@ -115,7 +91,6 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
 
     @Override
     public void update(float delta) {
-        // Navigation
         if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
             selectedRow = (selectedRow - 1 + ROW_COUNT) % ROW_COUNT;
         }
@@ -127,45 +102,52 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
             return;
         }
 
-        // Value adjustment via keyboard
-        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) adjustValue(selectedRow, -1);
-        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) adjustValue(selectedRow, +1);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
+            adjustValue(selectedRow, -1);
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+            adjustValue(selectedRow, 1);
+        }
 
-        // Activate START
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && selectedRow == 3) {
             launchCustomGame();
             return;
         }
 
-        // Mouse support
         MouseInput mouse = ioManager.getMouse();
+
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
-        float panelX = screenW / 2f - PANEL_WIDTH / 2f;
-        float topRowY = screenH / 2f + 70f;
+
+        float panelWidth = clampFloat(screenW * 0.48f, 520f, 760f);
+        float rowHeight = clampFloat(screenH * 0.075f, 52f, 72f);
+        float rowGap = clampFloat(screenH * 0.02f, 14f, 20f);
+        float buttonSize = clampFloat(rowHeight * 0.72f, 36f, 46f);
+
+        float panelX = screenW / 2f - panelWidth / 2f;
+        float topRowY = screenH / 2f + rowHeight * 1.5f;
 
         for (int row = 0; row < ROW_COUNT; row++) {
-            float rowY = topRowY - row * (ROW_HEIGHT + ROW_GAP);
+            float rowY = topRowY - row * (rowHeight + rowGap);
 
-            // Hover detection for entire row
-            if (mouse.isOver(panelX, rowY, PANEL_WIDTH, ROW_HEIGHT)) {
+            if (mouse.isOver(panelX, rowY, panelWidth, rowHeight)) {
                 selectedRow = row;
             }
 
             if (row < 3) {
-                // [-] button
-                float minusBtnX = panelX + PANEL_WIDTH - BTN_SIZE * 2 - 60f;
-                if (mouse.isClickedInside(minusBtnX, rowY + 8f, BTN_SIZE, BTN_SIZE)) {
+                float plusBtnX = panelX + panelWidth - buttonSize - 18f;
+                float minusBtnX = plusBtnX - buttonSize - 16f;
+                float btnY = rowY + (rowHeight - buttonSize) / 2f;
+
+                if (mouse.isClickedInside(minusBtnX, btnY, buttonSize, buttonSize)) {
                     adjustValue(row, -1);
                 }
-                // [+] button
-                float plusBtnX = panelX + PANEL_WIDTH - BTN_SIZE - 16f;
-                if (mouse.isClickedInside(plusBtnX, rowY + 8f, BTN_SIZE, BTN_SIZE)) {
-                    adjustValue(row, +1);
+
+                if (mouse.isClickedInside(plusBtnX, btnY, buttonSize, buttonSize)) {
+                    adjustValue(row, 1);
                 }
             } else {
-                // START button click
-                if (mouse.isClickedInside(panelX, rowY, PANEL_WIDTH, ROW_HEIGHT)) {
+                if (mouse.isClickedInside(panelX, rowY, panelWidth, rowHeight)) {
                     launchCustomGame();
                     return;
                 }
@@ -175,10 +157,17 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
 
     private void adjustValue(int row, int dir) {
         switch (row) {
-            case 0: laneCount = clamp(laneCount + dir, MIN_LANES, MAX_LANES); break;
-            case 1: vehiclesPerLane = clamp(vehiclesPerLane + dir, MIN_VEHICLES, MAX_VEHICLES); break;
-            case 2: speedLevel = clamp(speedLevel + dir, 0, SPEED_VALUES.length - 1); break;
-            default: break;
+            case 0:
+                laneCount = clamp(laneCount + dir, MIN_LANES, MAX_LANES);
+                break;
+            case 1:
+                vehiclesPerLane = clamp(vehiclesPerLane + dir, MIN_VEHICLES, MAX_VEHICLES);
+                break;
+            case 2:
+                speedLevel = clamp(speedLevel + dir, 0, SPEED_VALUES.length - 1);
+                break;
+            default:
+                break;
         }
     }
 
@@ -189,22 +178,16 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         navigator.startCustomGame();
     }
 
-    /**
-     * Builds a LevelDefinition from the player's chosen parameters.
-     * Alternates lane directions for visual variety.
-     * Adds a traffic light on lane 0 if there are 2+ lanes.
-     */
     private LevelDefinition buildCustomLevel() {
         float baseSpeed = SPEED_VALUES[speedLevel];
         List<LaneDefinition> lanes = new ArrayList<>();
 
         for (int i = 0; i < laneCount; i++) {
             int direction = (i % 2 == 0) ? 1 : -1;
-            float speed = baseSpeed + (i * 20f);   // slight variation per lane
+            float speed = baseSpeed + (i * 20f);
             lanes.add(new LaneDefinition(i, vehiclesPerLane, speed, direction));
         }
 
-        // Add a traffic light on lane 0 if there are at least 2 lanes
         List<TrafficLightDefinition> lights;
         if (laneCount >= 2) {
             lights = Collections.singletonList(
@@ -223,62 +206,122 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
     public void render() {
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
-        float panelX = screenW / 2f - PANEL_WIDTH / 2f;
-        float topRowY = screenH / 2f + 70f;
 
-        Gdx.gl.glClearColor(0.08f, 0.10f, 0.18f, 1f);
+        uiCamera.setToOrtho(false, screenW, screenH);
+        uiCamera.update();
+
+        shapeRenderer.setProjectionMatrix(uiCamera.combined);
+        batch.setProjectionMatrix(uiCamera.combined);
+
+        float panelWidth = clampFloat(screenW * 0.48f, 520f, 760f);
+        float rowHeight = clampFloat(screenH * 0.075f, 52f, 72f);
+        float rowGap = clampFloat(screenH * 0.02f, 14f, 20f);
+        float buttonSize = clampFloat(rowHeight * 0.72f, 36f, 46f);
+
+        float panelX = screenW / 2f - panelWidth / 2f;
+        float topRowY = screenH / 2f + rowHeight * 1.5f;
+
+        float panelPaddingTop = 90f;
+        float panelPaddingBottom = 28f;
+        float hintInnerPadding = 14f;
+
+        String hint = "UP/DOWN: select row   |   LEFT/RIGHT or click [-][+]: adjust   |   ENTER: start   |   ESC: back";
+        float hintTextWidth = panelWidth - 40f;
+        layout.setText(hintFont, hint, new Color(1f, 1f, 1f, 1f), hintTextWidth, 1, true);
+
+        float hintBoxHeight = Math.max(42f, layout.height + hintInnerPadding * 2f);
+
+        float panelHeight = panelPaddingTop
+                + (ROW_COUNT * rowHeight)
+                + ((ROW_COUNT - 1) * rowGap)
+                + 30f
+                + hintBoxHeight
+                + panelPaddingBottom;
+
+        float bottomRowY = topRowY - (ROW_COUNT - 1) * (rowHeight + rowGap);
+        float panelY = bottomRowY - panelPaddingBottom - hintBoxHeight - 30f;
+        float outerPanelX = panelX - 20f;
+        float outerPanelY = panelY;
+        float outerPanelW = panelWidth + 40f;
+        float outerPanelH = panelHeight;
+
+        float hintBoxX = panelX;
+        float hintBoxY = panelY + panelPaddingBottom;
+
+        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Background panel
-        float panelH = ROW_COUNT * (ROW_HEIGHT + ROW_GAP) + 120f;
-        float panelY = topRowY - (ROW_COUNT - 1) * (ROW_HEIGHT + ROW_GAP) - 60f;
-
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.12f, 0.15f, 0.28f, 1f);
-        shapeRenderer.rect(panelX - 20f, panelY, PANEL_WIDTH + 40f, panelH);
 
-        // Rows
+        shapeRenderer.setColor(0.06f, 0.08f, 0.14f, 1f);
+        shapeRenderer.rect(0, 0, screenW, screenH);
+
+        shapeRenderer.setColor(0.04f, 0.06f, 0.10f, 1f);
+        shapeRenderer.rect(0, 0, screenW * 0.18f, screenH);
+        shapeRenderer.rect(screenW * 0.82f, 0, screenW * 0.18f, screenH);
+
+        shapeRenderer.setColor(0.08f, 0.12f, 0.20f, 1f);
+        shapeRenderer.rect(screenW * 0.20f, 0, screenW * 0.60f, screenH);
+
+        shapeRenderer.setColor(0f, 0f, 0f, 0.30f);
+        shapeRenderer.rect(outerPanelX + 8f, outerPanelY - 8f, outerPanelW, outerPanelH);
+
+        shapeRenderer.setColor(0.10f, 0.16f, 0.28f, 0.95f);
+        shapeRenderer.rect(outerPanelX, outerPanelY, outerPanelW, outerPanelH);
+
+        shapeRenderer.setColor(0.18f, 0.28f, 0.48f, 1f);
+        shapeRenderer.rect(outerPanelX, outerPanelY + outerPanelH - 16f, outerPanelW, 16f);
+
         for (int row = 0; row < ROW_COUNT; row++) {
-            float rowY = topRowY - row * (ROW_HEIGHT + ROW_GAP);
-
+            float rowY = topRowY - row * (rowHeight + rowGap);
             boolean isStartRow = (row == 3);
             boolean selected = (row == selectedRow);
 
             if (isStartRow) {
-                shapeRenderer.setColor(selected
-                        ? new Color(0.20f, 0.80f, 0.30f, 1f)
-                        : new Color(0.15f, 0.50f, 0.20f, 1f));
-                shapeRenderer.rect(panelX, rowY, PANEL_WIDTH, ROW_HEIGHT);
+                if (selected) {
+                    shapeRenderer.setColor(0.86f, 0.75f, 0.18f, 1f);
+                } else {
+                    shapeRenderer.setColor(0.18f, 0.60f, 0.24f, 1f);
+                }
+                shapeRenderer.rect(panelX, rowY, panelWidth, rowHeight);
             } else {
-                // Row background
-                shapeRenderer.setColor(selected
-                        ? new Color(0.20f, 0.25f, 0.45f, 1f)
-                        : new Color(0.14f, 0.18f, 0.32f, 1f));
-                shapeRenderer.rect(panelX, rowY, PANEL_WIDTH, ROW_HEIGHT);
+                if (selected) {
+                    shapeRenderer.setColor(0.22f, 0.27f, 0.48f, 1f);
+                } else {
+                    shapeRenderer.setColor(0.15f, 0.19f, 0.34f, 1f);
+                }
+                shapeRenderer.rect(panelX, rowY, panelWidth, rowHeight);
 
-                // [-] and [+] buttons
-                float minusBtnX = panelX + PANEL_WIDTH - BTN_SIZE * 2 - 60f;
-                float plusBtnX = panelX + PANEL_WIDTH - BTN_SIZE - 16f;
-                float btnY = rowY + 8f;
+                float plusBtnX = panelX + panelWidth - buttonSize - 18f;
+                float minusBtnX = plusBtnX - buttonSize - 16f;
+                float btnY = rowY + (rowHeight - buttonSize) / 2f;
 
-                shapeRenderer.setColor(0.30f, 0.35f, 0.55f, 1f);
-                shapeRenderer.rect(minusBtnX, btnY, BTN_SIZE, BTN_SIZE);
-                shapeRenderer.rect(plusBtnX, btnY, BTN_SIZE, BTN_SIZE);
+                shapeRenderer.setColor(0.34f, 0.39f, 0.60f, 1f);
+                shapeRenderer.rect(minusBtnX, btnY, buttonSize, buttonSize);
+                shapeRenderer.rect(plusBtnX, btnY, buttonSize, buttonSize);
             }
         }
+
+        shapeRenderer.setColor(0f, 0f, 0f, 0.18f);
+        shapeRenderer.rect(hintBoxX + 3f, hintBoxY - 3f, panelWidth, hintBoxHeight);
+
+        shapeRenderer.setColor(0.18f, 0.28f, 0.48f, 1f);
+        shapeRenderer.rect(hintBoxX, hintBoxY, panelWidth, hintBoxHeight);
+
+        shapeRenderer.setColor(0.30f, 0.45f, 0.75f, 1f);
+        shapeRenderer.rect(hintBoxX, hintBoxY + hintBoxHeight - 6f, panelWidth, 6f);
+
         shapeRenderer.end();
 
-        // Text
         batch.begin();
 
-        // Title
+        String title = "CUSTOM LEVEL";
         titleFont.setColor(Color.WHITE);
-        layout.setText(titleFont, "CUSTOM LEVEL");
-        titleFont.draw(batch, "CUSTOM LEVEL",
+        layout.setText(titleFont, title);
+        titleFont.draw(batch, title,
                 screenW / 2f - layout.width / 2f,
-                topRowY + ROW_HEIGHT + 30f);
+                outerPanelY + outerPanelH - 34f);
 
-        // Parameter rows
         String[] labels = { "Lanes", "Vehicles / Lane", "Speed" };
         String[] values = {
                 String.valueOf(laneCount),
@@ -287,50 +330,60 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         };
 
         for (int row = 0; row < 3; row++) {
-            float rowY = topRowY - row * (ROW_HEIGHT + ROW_GAP);
-            float textY = rowY + ROW_HEIGHT / 2f + 6f;
+            float rowY = topRowY - row * (rowHeight + rowGap);
+            float textY = rowY + rowHeight / 2f + 7f;
 
             labelFont.setColor(Color.LIGHT_GRAY);
-            labelFont.draw(batch, labels[row], panelX + 20f, textY);
+            labelFont.draw(batch, labels[row], panelX + 24f, textY);
 
-            valueFont.setColor(Color.WHITE);
             layout.setText(valueFont, values[row]);
-            float valueX = panelX + PANEL_WIDTH - BTN_SIZE * 2 - 80f - layout.width;
+            float plusBtnX = panelX + panelWidth - buttonSize - 18f;
+            float minusBtnX = plusBtnX - buttonSize - 16f;
+
+            float valueX = minusBtnX - 24f - layout.width;
+            valueFont.setColor(Color.WHITE);
             valueFont.draw(batch, values[row], valueX, textY);
 
-            // [-] [+] text
-            float minusBtnX = panelX + PANEL_WIDTH - BTN_SIZE * 2 - 60f;
-            float plusBtnX = panelX + PANEL_WIDTH - BTN_SIZE - 16f;
-            float btnTextY = rowY + 8f + BTN_SIZE / 2f + 6f;
+            float btnY = rowY + (rowHeight - buttonSize) / 2f;
+            float btnTextY = btnY + buttonSize / 2f + 7f;
 
-            valueFont.setColor(Color.WHITE);
             layout.setText(valueFont, "-");
             valueFont.draw(batch, "-",
-                    minusBtnX + BTN_SIZE / 2f - layout.width / 2f, btnTextY);
+                    minusBtnX + buttonSize / 2f - layout.width / 2f,
+                    btnTextY);
+
             layout.setText(valueFont, "+");
             valueFont.draw(batch, "+",
-                    plusBtnX + BTN_SIZE / 2f - layout.width / 2f, btnTextY);
+                    plusBtnX + buttonSize / 2f - layout.width / 2f,
+                    btnTextY);
         }
 
-        // START button
-        float startRowY = topRowY - 3 * (ROW_HEIGHT + ROW_GAP);
-        valueFont.setColor(selectedRow == 3 ? Color.WHITE : Color.LIGHT_GRAY);
-        layout.setText(valueFont, "START");
-        valueFont.draw(batch, "START",
+        float startRowY = topRowY - 3 * (rowHeight + rowGap);
+        String startText = "START";
+        valueFont.setColor(selectedRow == 3 ? Color.BLACK : Color.WHITE);
+        layout.setText(valueFont, startText);
+        valueFont.draw(batch, startText,
                 screenW / 2f - layout.width / 2f,
-                startRowY + ROW_HEIGHT / 2f + 8f);
+                startRowY + rowHeight / 2f + 8f);
 
-        // Hint
-        hintFont.setColor(0.6f, 0.65f, 0.8f, 1f);
-        String hint = "UP/DOWN: select row  |  LEFT/RIGHT or click [-][+]: adjust  |  ENTER: start  |  ESC: back";
-        layout.setText(hintFont, hint);
-        hintFont.draw(batch, hint,
-                screenW / 2f - layout.width / 2f, panelY - 10f);
+        hintFont.setColor(0.92f, 0.96f, 1f, 1f);
+        layout.setText(hintFont, hint, hintFont.getColor(), hintTextWidth, 1, true);
+        hintFont.draw(batch,
+                hint,
+                hintBoxX + 20f,
+                hintBoxY + hintBoxHeight - hintInnerPadding,
+                hintTextWidth,
+                1,
+                true);
 
         batch.end();
     }
 
     private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private float clampFloat(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
     }
 
@@ -341,5 +394,7 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
     }
 
     @Override
-    public boolean updatesWorld() { return false; }
+    public boolean updatesWorld() {
+        return false;
+    }
 }

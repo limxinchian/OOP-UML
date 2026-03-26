@@ -88,4 +88,8 @@ public class SceneNavigator {
         }
         return null;
     }
+
+    public void goToSettings() {
+    sceneManager.changeScene(CrossyLaneSceneKey.SETTINGS);
+    }
 }
