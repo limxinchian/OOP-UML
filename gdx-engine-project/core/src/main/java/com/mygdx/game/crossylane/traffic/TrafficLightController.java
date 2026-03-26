@@ -1,7 +1,7 @@
 package com.mygdx.game.crossylane.traffic;
 
 /**
- * Owns traffic-light timing and lane-entry scoring for one controlled lane.
+ * Owns traffic-light timing and road-entry scoring for one controlled lane.
  */
 public class TrafficLightController {
     public static final int NO_LANE_INDEX = -1;
@@ -46,7 +46,7 @@ public class TrafficLightController {
     }
 
     public int scoreForLaneEntry(int previousLaneIndex, int currentLaneIndex) {
-        if (!isEnteringControlledLane(previousLaneIndex, currentLaneIndex)) {
+        if (!isEnteringRoadAtControlledLane(previousLaneIndex, currentLaneIndex)) {
             return 0;
         }
 
@@ -86,9 +86,8 @@ public class TrafficLightController {
         return greenLaneEntryScoreDelta;
     }
 
-    private boolean isEnteringControlledLane(int previousLaneIndex, int currentLaneIndex) {
-        return previousLaneIndex != currentLaneIndex
-                && currentLaneIndex == controlledLaneIndex
-                && previousLaneIndex != NO_LANE_INDEX;
+    private boolean isEnteringRoadAtControlledLane(int previousLaneIndex, int currentLaneIndex) {
+        return previousLaneIndex == NO_LANE_INDEX
+                && currentLaneIndex == controlledLaneIndex;
     }
 }
