@@ -102,7 +102,7 @@ public class CrossyLaneAudioController {
     }
 
     public void playLoseMusic() {
-        audioManager.playMusic(MUSIC_LOSE, true);
+        audioManager.playMusic(MUSIC_LOSE, false);
     }
 
     public void pauseMusic() {
