@@ -10,7 +10,7 @@ import java.util.List;
  *
  * Phase 5 changes:
  * - Expanded from 3 to 5 levels with clear progressive difficulty:
- *   more cars, faster speeds, more traffic lights, shorter light windows.
+ *   more cars, faster speeds, and shorter traffic-light windows.
  * - Each level is purely data — no code changes needed to add a 6th.
  */
 public class LevelRegistry {
@@ -51,15 +51,14 @@ public class LevelRegistry {
      * Difficulty axes per level:
      *   - Vehicle count per lane (2 → 4)
      *   - Vehicle speed (150 → 310 px/s)
-     *   - Traffic light count (1 → 3)
-     *   - Traffic light switch interval (4s → 2s)
+     *   - Shared traffic-light switch interval (4s → 1.5s)
      *   - Coins available (generous → scarce)
      */
     public static LevelRegistry createDefaultLevels() {
         return new LevelRegistry(Arrays.asList(
 
             // Level 1: Gentle introduction
-            // 3 lanes, slow traffic, one traffic light, generous coins
+            // 3 lanes, slow traffic, one start-line traffic light, generous coins
             new LevelDefinition(1,
                 Arrays.asList(
                     new LaneDefinition(0, 2, 150f, 1),
@@ -68,11 +67,11 @@ public class LevelRegistry {
                 ),
                 2, 5, 4f,
                 Collections.singletonList(
-                    new TrafficLightDefinition(1, 4f, -50, 50)
+                    new TrafficLightDefinition(0, 4f, -50, 50)
                 )),
 
             // Level 2: Getting faster
-            // 3 lanes, +1 car per lane, faster, two traffic lights
+            // 3 lanes, +1 car per lane, faster, one start-line traffic light
             new LevelDefinition(2,
                 Arrays.asList(
                     new LaneDefinition(0, 3, 180f, 1),
@@ -80,54 +79,47 @@ public class LevelRegistry {
                     new LaneDefinition(2, 3, 230f, 1)
                 ),
                 2, 4, 3.5f,
-                Arrays.asList(
-                    new TrafficLightDefinition(0, 3.5f, -50, 50),
-                    new TrafficLightDefinition(2, 3.5f, -50, 50)
+                Collections.singletonList(
+                    new TrafficLightDefinition(0, 3.5f, -50, 50)
                 )),
 
             // Level 3: Busy road
-            // 3 lanes, 3 cars each, faster, all lanes have lights
+            // 3 lanes, 3 cars each, faster, stricter start-line traffic light
             new LevelDefinition(3,
                 Arrays.asList(
                     new LaneDefinition(0, 3, 210f, 1),
                     new LaneDefinition(1, 3, 250f, -1),
                     new LaneDefinition(2, 3, 260f, 1)
                 ),
-                1, 3, 3f,
-                Arrays.asList(
-                    new TrafficLightDefinition(0, 3f, -50, 50),
-                    new TrafficLightDefinition(1, 2.5f, -75, 75),
-                    new TrafficLightDefinition(2, 3f, -50, 50)
+                1, 3, 2.5f,
+                Collections.singletonList(
+                    new TrafficLightDefinition(0, 2.5f, -75, 75)
                 )),
 
             // Level 4: Rush hour
-            // 3 lanes, 4 cars on outer lanes, faster, tight light timing
+            // 3 lanes, 4 cars on outer lanes, faster, tight start-line timing
             new LevelDefinition(4,
                 Arrays.asList(
                     new LaneDefinition(0, 4, 240f, 1),
                     new LaneDefinition(1, 3, 280f, -1),
                     new LaneDefinition(2, 4, 260f, 1)
                 ),
-                1, 2, 2.5f,
-                Arrays.asList(
-                    new TrafficLightDefinition(0, 2.5f, -75, 75),
-                    new TrafficLightDefinition(1, 2f, -100, 100),
-                    new TrafficLightDefinition(2, 2.5f, -75, 75)
+                1, 2, 2f,
+                Collections.singletonList(
+                    new TrafficLightDefinition(0, 2f, -100, 100)
                 )),
 
             // Level 5: Mayhem
-            // 3 lanes, packed, very fast, very short light windows, scarce coins
+            // 3 lanes, packed, very fast, one harsh start-line light, scarce coins
             new LevelDefinition(5,
                 Arrays.asList(
                     new LaneDefinition(0, 4, 270f, 1),
                     new LaneDefinition(1, 4, 310f, -1),
                     new LaneDefinition(2, 4, 290f, 1)
                 ),
-                1, 1, 2f,
-                Arrays.asList(
-                    new TrafficLightDefinition(0, 2f, -100, 100),
-                    new TrafficLightDefinition(1, 1.5f, -150, 150),
-                    new TrafficLightDefinition(2, 2f, -100, 100)
+                1, 1, 1.5f,
+                Collections.singletonList(
+                    new TrafficLightDefinition(0, 1.5f, -150, 150)
                 ))
         ));
     }

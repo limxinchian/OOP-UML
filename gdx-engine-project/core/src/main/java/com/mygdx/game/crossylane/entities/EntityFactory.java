@@ -11,6 +11,7 @@ import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.SafeStopZoneEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
+import com.mygdx.game.crossylane.layout.LaneLayout;
 import com.mygdx.game.engine.event.EventBus;
 
 /**
@@ -22,8 +23,8 @@ import com.mygdx.game.engine.event.EventBus;
  * which components each entity requires.
  *
  * Phase 4 changes:
- * - Added createLaneTrafficLight(int laneIndex) which positions the traffic
- *   light entity beside its controlled lane on the right edge of the road.
+ * - Added traffic-light factory helpers so scenes can place the shared road
+ *   light without duplicating layout math.
  * - Removed the old createTrafficLight() that used fixed config coordinates.
  */
 public class EntityFactory {
@@ -50,9 +51,8 @@ public class EntityFactory {
     // Vehicles
     // =========================================================================
 
-    public static CarEntity createCar(float x, int laneIndex, float speed, int direction) {
-        float y = CrossyLaneConfig.ROAD_START_Y
-                + (laneIndex * CrossyLaneConfig.LANE_HEIGHT)
+    public static CarEntity createCar(float x, LaneLayout laneLayout, int laneIndex, float speed, int direction) {
+        float y = laneLayout.getLaneBaseY(laneIndex)
                 + (CrossyLaneConfig.LANE_HEIGHT - CrossyLaneConfig.CAR_HEIGHT) / 2f;
 
         return new CarEntity(x, y,
@@ -61,7 +61,12 @@ public class EntityFactory {
                 speed, direction);
     }
 
-    public static List<CarEntity> createLane(int laneIndex, int carCount, float speed, int direction) {
+    public static List<CarEntity> createLane(
+            LaneLayout laneLayout,
+            int laneIndex,
+            int carCount,
+            float speed,
+            int direction) {
         List<CarEntity> cars = new ArrayList<>();
         float spacing = CrossyLaneConfig.WORLD_WIDTH / carCount;
 
@@ -70,15 +75,16 @@ public class EntityFactory {
                     ? i * spacing
                     : CrossyLaneConfig.WORLD_WIDTH - (i * spacing) - CrossyLaneConfig.CAR_WIDTH;
 
-            cars.add(createCar(startX, laneIndex, speed, direction));
+            cars.add(createCar(startX, laneLayout, laneIndex, speed, direction));
         }
         return cars;
     }
 
-    public static List<CarEntity> createCarsForLevel(LevelDefinition level) {
+    public static List<CarEntity> createCarsForLevel(LevelDefinition level, LaneLayout laneLayout) {
         List<CarEntity> cars = new ArrayList<>();
         for (LaneDefinition lane : level.getLanes()) {
             cars.addAll(createLane(
+                    laneLayout,
                     lane.getLaneIndex(),
                     lane.getCarCount(),
                     lane.getSpeed(),
@@ -130,23 +136,18 @@ public class EntityFactory {
     }
 
     // =========================================================================
-    // Traffic lights (per-lane)
+    // Traffic lights
     // =========================================================================
 
     /**
-     * Creates a traffic light entity positioned beside the specified lane.
-     * The light is placed at the right edge of the road, vertically centred
-     * within the lane.
-     *
-     * @param laneIndex 0-based lane that this light controls
+     * Creates the shared traffic light positioned at the start line before
+     * lane 0. The light is horizontally and vertically centred within the
+     * bottom grass strip.
      */
-    public static TrafficLightEntity createLaneTrafficLight(int laneIndex) {
-        float laneY = CrossyLaneConfig.ROAD_START_Y
-                + (laneIndex * CrossyLaneConfig.LANE_HEIGHT);
-        float centredY = laneY + (CrossyLaneConfig.LANE_HEIGHT - CrossyLaneConfig.TRAFFIC_LIGHT_HEIGHT) / 2f;
-        float x = CrossyLaneConfig.WORLD_WIDTH
-                - CrossyLaneConfig.TRAFFIC_LIGHT_WIDTH
-                - CrossyLaneConfig.TRAFFIC_LIGHT_RIGHT_MARGIN;
+    public static TrafficLightEntity createStartLineTrafficLight() {
+        float x = (CrossyLaneConfig.WORLD_WIDTH - CrossyLaneConfig.TRAFFIC_LIGHT_WIDTH) / 2f;
+        float centredY = CrossyLaneConfig.BOTTOM_GRASS_Y
+                + (CrossyLaneConfig.GRASS_ZONE_HEIGHT - CrossyLaneConfig.TRAFFIC_LIGHT_HEIGHT) / 2f;
 
         return new TrafficLightEntity(x, centredY,
                 CrossyLaneConfig.TRAFFIC_LIGHT_WIDTH,
@@ -161,26 +162,32 @@ public class EntityFactory {
         return new CoinEntity(x, y, eventBus);
     }
 
-    public static ZebraCrossingEntity createZebraCrossing(int laneIndex) {
-        float y = CrossyLaneConfig.ROAD_START_Y + (laneIndex * CrossyLaneConfig.LANE_HEIGHT);
+    public static ZebraCrossingEntity createZebraCrossing(LaneLayout laneLayout, int laneIndex) {
+        float y = laneLayout.getLaneBaseY(laneIndex);
         return new ZebraCrossingEntity(0f, y, CrossyLaneConfig.WORLD_WIDTH);
     }
 
-    public static SafeStopZoneEntity createSafeIsland(float x, int laneIndex, float width) {
-        float y = CrossyLaneConfig.ROAD_START_Y + (laneIndex * CrossyLaneConfig.LANE_HEIGHT);
+    public static SafeStopZoneEntity createSafeIsland(
+            LaneLayout laneLayout,
+            float x,
+            int laneIndex,
+            float width) {
+        float y = laneLayout.getLaneBaseY(laneIndex);
         return new SafeStopZoneEntity(x, y, width, CrossyLaneConfig.LANE_HEIGHT);
     }
 
-    public static List<CoinEntity> createCoinsForRoadLanes(int laneCount, int coinsPerLane, EventBus eventBus) {
+    public static List<CoinEntity> createCoinsForRoadLanes(
+            LaneLayout laneLayout,
+            int coinsPerLane,
+            EventBus eventBus) {
         List<CoinEntity> coins = new ArrayList<>();
-        if (laneCount <= 0 || coinsPerLane <= 0) return coins;
+        if (laneLayout.getLaneCount() <= 0 || coinsPerLane <= 0) return coins;
 
         float usableWidth = CrossyLaneConfig.WORLD_WIDTH - (2f * COIN_SIDE_MARGIN) - CrossyLaneConfig.COIN_SIZE;
         float slotWidth = usableWidth / coinsPerLane;
 
-        for (int laneIndex = 0; laneIndex < laneCount; laneIndex++) {
-            float y = CrossyLaneConfig.ROAD_START_Y
-                    + (laneIndex * CrossyLaneConfig.LANE_HEIGHT)
+        for (int laneIndex = 0; laneIndex < laneLayout.getLaneCount(); laneIndex++) {
+            float y = laneLayout.getLaneBaseY(laneIndex)
                     + (CrossyLaneConfig.LANE_HEIGHT - CrossyLaneConfig.COIN_SIZE) / 2f;
 
             for (int coinIndex = 0; coinIndex < coinsPerLane; coinIndex++) {

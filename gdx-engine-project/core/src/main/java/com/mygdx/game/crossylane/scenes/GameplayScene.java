@@ -17,12 +17,12 @@ import com.mygdx.game.crossylane.entities.CarEntity;
 import com.mygdx.game.crossylane.entities.EntityFactory;
 import com.mygdx.game.crossylane.entities.GoalZoneEntity;
 import com.mygdx.game.crossylane.entities.GrassZoneEntity;
-import com.mygdx.game.crossylane.entities.LaneMarkerEntity;
 import com.mygdx.game.crossylane.entities.PlayerEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.CoinEntity;
 import com.mygdx.game.crossylane.events.CoinCollectedEvent;
 import com.mygdx.game.crossylane.events.GoalReachedEvent;
 import com.mygdx.game.crossylane.events.PlayerHitEvent;
+import com.mygdx.game.crossylane.layout.LaneLayout;
 import com.mygdx.game.crossylane.audio.CrossyLaneAudioController;
 import com.mygdx.game.crossylane.state.CrossyLaneSession;
 import com.mygdx.game.crossylane.systems.CarWrapSystem;
@@ -73,7 +73,6 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
     // -- World entities ---------------------------------------------------------
     private final List<CarEntity> cars = new ArrayList<>();
     private final List<GrassZoneEntity> grassZones = new ArrayList<>();
-    private final List<LaneMarkerEntity> laneMarkers = new ArrayList<>();
     private final List<CoinEntity> coins = new ArrayList<>();
     private final TrafficLightSystem trafficLightSystem = new TrafficLightSystem();
     private GoalZoneEntity goalZone;
@@ -176,6 +175,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         clearWorldEntities();
 
         LevelDefinition level = getActiveLevel();
+        LaneLayout laneLayout = getLaneLayout(level);
 
         grassZones.add(EntityFactory.createBottomGrass());
         for (GrassZoneEntity grass : grassZones) entityManager.addEntity(grass);
@@ -183,16 +183,13 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         goalZone = EntityFactory.createGoalZone();
         entityManager.addEntity(goalZone);
 
-        laneMarkers.addAll(EntityFactory.createLaneMarkers(level.getLaneCount()));
-        for (LaneMarkerEntity marker : laneMarkers) entityManager.addEntity(marker);
-
-        cars.addAll(EntityFactory.createCarsForLevel(level));
+        cars.addAll(EntityFactory.createCarsForLevel(level, laneLayout));
         for (CarEntity car : cars) entityManager.addEntity(car);
 
         coins.addAll(EntityFactory.createCoinsForRoadLanes(
-                level.getLaneCount(), level.getCoinsPerLane(), eventBus));
+                laneLayout, level.getCoinsPerLane(), eventBus));
         coins.addAll(EntityFactory.createCoinsForTopPatch(
-                level.getTopPatchCoins(), getRoadTopY(level),
+                level.getTopPatchCoins(), laneLayout.getRoadTopY(),
                 CrossyLaneConfig.GOAL_ZONE_Y, eventBus));
         for (CoinEntity coin : coins) entityManager.addEntity(coin);
 
@@ -321,9 +318,6 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         for (GrassZoneEntity grass : grassZones) entityManager.removeEntity(grass);
         grassZones.clear();
 
-        for (LaneMarkerEntity marker : laneMarkers) entityManager.removeEntity(marker);
-        laneMarkers.clear();
-
         for (CoinEntity coin : coins) entityManager.removeEntity(coin);
         coins.clear();
 
@@ -358,14 +352,15 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         if (t == null) return TrafficLightController.NO_LANE_INDEX;
 
         LevelDefinition level = getActiveLevel();
+        LaneLayout laneLayout = getLaneLayout(level);
         float centerY = t.getPositionY() + (t.getHeight() / 2f);
-        float roadBottom = CrossyLaneConfig.ROAD_START_Y;
-        float roadTop = getRoadTopY(level);
-
-        if (centerY < roadBottom || centerY >= roadTop) {
+        if (centerY < CrossyLaneConfig.ROAD_START_Y || centerY >= laneLayout.getRoadTopY()) {
             return TrafficLightController.NO_LANE_INDEX;
         }
-        return (int) ((centerY - roadBottom) / CrossyLaneConfig.LANE_HEIGHT);
+        int laneIndex = laneLayout.getLaneIndexForY(centerY);
+        return laneIndex == LaneLayout.NO_LANE_INDEX
+                ? TrafficLightController.NO_LANE_INDEX
+                : laneIndex;
     }
 
     private void applyTrafficLightScore() {
@@ -399,16 +394,23 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
     private void drawRoad(LevelDefinition level) {
         shapeRenderer.setColor(0.35f, 0.35f, 0.35f, 1f);
-        shapeRenderer.rect(0f, CrossyLaneConfig.ROAD_START_Y,
-                CrossyLaneConfig.WORLD_WIDTH, getRoadHeight(level));
+        LaneLayout laneLayout = getLaneLayout(level);
+        for (int laneIndex = 0; laneIndex < level.getLaneCount(); laneIndex++) {
+            shapeRenderer.rect(0f, laneLayout.getLaneBaseY(laneIndex),
+                    CrossyLaneConfig.WORLD_WIDTH, CrossyLaneConfig.LANE_HEIGHT);
+        }
     }
 
     private float getRoadHeight(LevelDefinition level) {
-        return level.getLaneCount() * CrossyLaneConfig.LANE_HEIGHT;
+        return getLaneLayout(level).getRoadBlockHeight();
     }
 
     private float getRoadTopY(LevelDefinition level) {
-        return CrossyLaneConfig.ROAD_START_Y + getRoadHeight(level);
+        return getLaneLayout(level).getRoadTopY();
+    }
+
+    private LaneLayout getLaneLayout(LevelDefinition level) {
+        return LaneLayout.forLaneCount(level.getLaneCount());
     }
 
     // -- Accessors --------------------------------------------------------------
