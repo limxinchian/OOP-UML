@@ -258,25 +258,44 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
 
         boolean won = session.hasPlayerWon();
 
-        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
+        if (won) {
+            Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
+        } else {
+            Gdx.gl.glClearColor(0.10f, 0.03f, 0.04f, 1f);
+        }
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        MenuUiTheme.drawBackdrop(shapeRenderer, screenW, screenH);
-        MenuUiTheme.drawPanel(shapeRenderer, panelX, panelY, panelWidth, panelHeight);
-        MenuUiTheme.drawCard(shapeRenderer, titleX, titleY, titleWidth, titleHeight);
-        MenuUiTheme.drawCard(shapeRenderer, scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight);
+        if (won) {
+            MenuUiTheme.drawBackdrop(shapeRenderer, screenW, screenH);
+            MenuUiTheme.drawPanel(shapeRenderer, panelX, panelY, panelWidth, panelHeight);
+            MenuUiTheme.drawCard(shapeRenderer, titleX, titleY, titleWidth, titleHeight);
+            MenuUiTheme.drawCard(shapeRenderer, scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight);
+        } else {
+            drawLossBackdrop(shapeRenderer, screenW, screenH);
+            drawLossPanel(shapeRenderer, panelX, panelY, panelWidth, panelHeight);
+            drawLossCard(shapeRenderer, titleX, titleY, titleWidth, titleHeight);
+            drawLossCard(shapeRenderer, scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight);
+        }
 
         // Buttons
         for (int i = 0; i < options.length; i++) {
             float buttonY = menuStartY - i * (buttonHeight + buttonGap);
             boolean selected = (i == selectedIndex);
 
-            MenuUiTheme.drawButton(shapeRenderer, buttonX, buttonY, menuWidth, buttonHeight, selected);
+            if (won) {
+                MenuUiTheme.drawButton(shapeRenderer, buttonX, buttonY, menuWidth, buttonHeight, selected);
+            } else {
+                drawLossButton(shapeRenderer, buttonX, buttonY, menuWidth, buttonHeight, selected);
+            }
         }
 
-        MenuUiTheme.drawCard(shapeRenderer, hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
+        if (won) {
+            MenuUiTheme.drawCard(shapeRenderer, hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
+        } else {
+            drawLossCard(shapeRenderer, hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
+        }
 
         shapeRenderer.end();
 
@@ -351,6 +370,65 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
 
     private float clampFloat(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private void drawLossBackdrop(ShapeRenderer renderer, float screenW, float screenH) {
+        renderer.setColor(0.10f, 0.03f, 0.04f, 1f);
+        renderer.rect(0, 0, screenW, screenH);
+
+        renderer.setColor(0.08f, 0.02f, 0.03f, 1f);
+        renderer.rect(0, 0, screenW * 0.18f, screenH);
+        renderer.rect(screenW * 0.82f, 0, screenW * 0.18f, screenH);
+
+        renderer.setColor(0.16f, 0.04f, 0.06f, 1f);
+        renderer.rect(screenW * 0.20f, 0, screenW * 0.60f, screenH);
+    }
+
+    private void drawLossPanel(ShapeRenderer renderer, float x, float y, float width, float height) {
+        renderer.setColor(0f, 0f, 0f, 0.35f);
+        renderer.rect(x + 10f, y - 10f, width, height);
+
+        renderer.setColor(0.22f, 0.06f, 0.08f, 0.96f);
+        renderer.rect(x, y, width, height);
+
+        renderer.setColor(0.42f, 0.10f, 0.12f, 1f);
+        renderer.rect(x, y + height - 16f, width, 16f);
+    }
+
+    private void drawLossCard(ShapeRenderer renderer, float x, float y, float width, float height) {
+        renderer.setColor(0f, 0f, 0f, 0.20f);
+        renderer.rect(x + 4f, y - 4f, width, height);
+
+        renderer.setColor(0.32f, 0.08f, 0.10f, 1f);
+        renderer.rect(x, y, width, height);
+
+        renderer.setColor(0.58f, 0.16f, 0.18f, 1f);
+        renderer.rect(x, y + height - 6f, width, 6f);
+    }
+
+    private void drawLossButton(
+            ShapeRenderer renderer,
+            float x,
+            float y,
+            float width,
+            float height,
+            boolean selected) {
+        renderer.setColor(0f, 0f, 0f, 0.25f);
+        renderer.rect(x + 4f, y - 4f, width, height);
+
+        if (selected) {
+            renderer.setColor(0.95f, 0.80f, 0.20f, 1f);
+        } else {
+            renderer.setColor(0.38f, 0.10f, 0.12f, 1f);
+        }
+        renderer.rect(x, y, width, height);
+
+        if (selected) {
+            renderer.setColor(1.00f, 0.90f, 0.38f, 1f);
+        } else {
+            renderer.setColor(0.62f, 0.18f, 0.20f, 1f);
+        }
+        renderer.rect(x, y + height - 8f, width, 8f);
     }
 
     @Override
