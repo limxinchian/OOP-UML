@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.crossylane.audio.CrossyLaneAudioController;
 import com.mygdx.game.crossylane.config.LevelRegistry;
 import com.mygdx.game.crossylane.state.CrossyLaneSession;
+import com.mygdx.game.crossylane.ui.MenuUiTheme;
 import com.mygdx.game.engine.io.MouseInput;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.render.FontManager;
@@ -133,13 +134,11 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
         float buttonHeight = clampFloat(screenH * 0.075f, 50f, 68f);
         float buttonGap = clampFloat(screenH * 0.022f, 16f, 24f);
 
-        float titleWidth = clampFloat(screenW * 0.28f, 340f, 500f);
         float titleHeight = clampFloat(screenH * 0.09f, 74f, 94f);
 
         float scoreBoxHeight = clampFloat(screenH * 0.06f, 42f, 52f);
         float hintBoxHeight = clampFloat(screenH * 0.045f, 34f, 42f);
 
-        float panelPaddingX = 42f;
         float panelTopPadding = 28f;
         float gapTitleToScore = 22f;
         float gapScoreToButtons = 26f;
@@ -147,7 +146,6 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
         float panelBottomPadding = 24f;
 
         float menuHeight = options.length * buttonHeight + (options.length - 1) * buttonGap;
-        float panelWidth = menuWidth + panelPaddingX * 2f;
         float panelHeight =
                 panelTopPadding +
                 titleHeight +
@@ -159,7 +157,6 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
                 hintBoxHeight +
                 panelBottomPadding;
 
-        float panelX = screenW / 2f - panelWidth / 2f;
         float panelY = screenH / 2f - panelHeight / 2f;
 
         float titleY = panelY + panelHeight - panelTopPadding - titleHeight;
@@ -261,94 +258,38 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
 
         boolean won = session.hasPlayerWon();
 
-        Gdx.gl.glClearColor(0.10f, 0.03f, 0.04f, 1f);
+        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Background
-        shapeRenderer.setColor(0.10f, 0.03f, 0.04f, 1f);
-        shapeRenderer.rect(0, 0, screenW, screenH);
-
-        shapeRenderer.setColor(0.08f, 0.02f, 0.03f, 1f);
-        shapeRenderer.rect(0, 0, screenW * 0.18f, screenH);
-        shapeRenderer.rect(screenW * 0.82f, 0, screenW * 0.18f, screenH);
-
-        shapeRenderer.setColor(0.16f, 0.04f, 0.06f, 1f);
-        shapeRenderer.rect(screenW * 0.20f, 0, screenW * 0.60f, screenH);
-
-        // Panel shadow
-        shapeRenderer.setColor(0f, 0f, 0f, 0.35f);
-        shapeRenderer.rect(panelX + 10f, panelY - 10f, panelWidth, panelHeight);
-
-        // Main panel
-        shapeRenderer.setColor(0.22f, 0.06f, 0.08f, 0.96f);
-        shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
-
-        // Panel top strip
-        shapeRenderer.setColor(0.42f, 0.10f, 0.12f, 1f);
-        shapeRenderer.rect(panelX, panelY + panelHeight - 16f, panelWidth, 16f);
-
-        // Title shadow
-        shapeRenderer.setColor(0f, 0f, 0f, 0.30f);
-        shapeRenderer.rect(titleX + 6f, titleY - 6f, titleWidth, titleHeight);
-
-        // Title bar
-        shapeRenderer.setColor(0.50f, 0.12f, 0.14f, 1f);
-        shapeRenderer.rect(titleX, titleY, titleWidth, titleHeight);
-
-        // Title highlight
-        shapeRenderer.setColor(0.78f, 0.22f, 0.24f, 1f);
-        shapeRenderer.rect(titleX, titleY + titleHeight - 10f, titleWidth, 10f);
-
-        // Score box
-        shapeRenderer.setColor(0f, 0f, 0f, 0.20f);
-        shapeRenderer.rect(scoreBoxX + 4f, scoreBoxY - 4f, scoreBoxWidth, scoreBoxHeight);
-
-        shapeRenderer.setColor(0.32f, 0.08f, 0.10f, 1f);
-        shapeRenderer.rect(scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight);
-
-        shapeRenderer.setColor(0.58f, 0.16f, 0.18f, 1f);
-        shapeRenderer.rect(scoreBoxX, scoreBoxY + scoreBoxHeight - 6f, scoreBoxWidth, 6f);
+        MenuUiTheme.drawBackdrop(shapeRenderer, screenW, screenH);
+        MenuUiTheme.drawPanel(shapeRenderer, panelX, panelY, panelWidth, panelHeight);
+        MenuUiTheme.drawCard(shapeRenderer, titleX, titleY, titleWidth, titleHeight);
+        MenuUiTheme.drawCard(shapeRenderer, scoreBoxX, scoreBoxY, scoreBoxWidth, scoreBoxHeight);
 
         // Buttons
         for (int i = 0; i < options.length; i++) {
             float buttonY = menuStartY - i * (buttonHeight + buttonGap);
             boolean selected = (i == selectedIndex);
 
-            shapeRenderer.setColor(0f, 0f, 0f, 0.25f);
-            shapeRenderer.rect(buttonX + 4f, buttonY - 4f, menuWidth, buttonHeight);
-
-            if (selected) {
-                shapeRenderer.setColor(0.95f, 0.80f, 0.20f, 1f);
-            } else {
-                shapeRenderer.setColor(0.38f, 0.10f, 0.12f, 1f);
-            }
-            shapeRenderer.rect(buttonX, buttonY, menuWidth, buttonHeight);
-
-            if (selected) {
-                shapeRenderer.setColor(1.00f, 0.90f, 0.38f, 1f);
-            } else {
-                shapeRenderer.setColor(0.62f, 0.18f, 0.20f, 1f);
-            }
-            shapeRenderer.rect(buttonX, buttonY + buttonHeight - 8f, menuWidth, 8f);
+            MenuUiTheme.drawButton(shapeRenderer, buttonX, buttonY, menuWidth, buttonHeight, selected);
         }
 
-        // Hint box
-        shapeRenderer.setColor(0f, 0f, 0f, 0.20f);
-        shapeRenderer.rect(hintBoxX + 3f, hintBoxY - 3f, hintBoxWidth, hintBoxHeight);
-
-        shapeRenderer.setColor(0.32f, 0.08f, 0.10f, 1f);
-        shapeRenderer.rect(hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
-
-        shapeRenderer.setColor(0.58f, 0.16f, 0.18f, 1f);
-        shapeRenderer.rect(hintBoxX, hintBoxY + hintBoxHeight - 6f, hintBoxWidth, 6f);
+        MenuUiTheme.drawCard(shapeRenderer, hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
 
         shapeRenderer.end();
 
         batch.begin();
 
-        String title = won ? "LEVEL COMPLETE!" : "GAME OVER";
+        boolean customMode = session.isCustomMode();
+        boolean finalStageCleared = won && !customMode && levelRegistry.isFinalLevel(session.getLevelNumber());
+        String title;
+        if (finalStageCleared) {
+            title = "CONGRATULATIONS!";
+        } else {
+            title = won ? "LEVEL COMPLETE!" : "GAME OVER";
+        }
         layout.setText(titleFont, title);
 
         titleFont.setColor(0f, 0f, 0f, 0.45f);
@@ -361,13 +302,24 @@ public class ResultScene implements IScene<CrossyLaneSceneKey> {
                 screenW / 2f - layout.width / 2f,
                 titleY + titleHeight / 2f + layout.height / 2f);
 
-        String scoreLine = "Score: " + session.getScore() + "    Level: " + session.getLevelNumber();
+        String scoreLine = customMode
+            ? "Score: " + session.getScore() + "    Mode: Custom"
+            : "Score: " + session.getScore() + "    Level: " + session.getLevelNumber();
         layout.setText(scoreFont, scoreLine);
 
         scoreFont.setColor(1f, 0.92f, 0.35f, 1f);
         scoreFont.draw(batch, scoreLine,
                 screenW / 2f - layout.width / 2f,
                 scoreBoxY + scoreBoxHeight / 2f + layout.height / 2f - 1f);
+
+        if (finalStageCleared) {
+            String completionNote = "You have completed all stages!";
+            layout.setText(hintFont, completionNote);
+            hintFont.setColor(1f, 0.94f, 0.70f, 1f);
+            hintFont.draw(batch, completionNote,
+                screenW / 2f - layout.width / 2f,
+                scoreBoxY - 10f);
+        }
 
         for (int i = 0; i < options.length; i++) {
             float buttonY = menuStartY - i * (buttonHeight + buttonGap);

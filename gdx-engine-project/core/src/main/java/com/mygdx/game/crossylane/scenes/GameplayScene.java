@@ -175,6 +175,9 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         clearWorldEntities();
 
         LevelDefinition level = getActiveLevel();
+        if (session.isCustomMode()) {
+            currentLevelNumber = level.getLevelNumber();
+        }
         LaneLayout laneLayout = getLaneLayout(level);
 
         grassZones.add(EntityFactory.createBottomGrass());
@@ -195,7 +198,7 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
 
         trafficLightSystem.initialize(level.getTrafficLights(), entityManager, eventBus);
 
-        player = EntityFactory.createPlayer(eventBus);
+        player = EntityFactory.createPlayer(eventBus, audioController);
         entityManager.addEntity(player);
         previousPlayerLaneIndex = getPlayerLaneIndex();
     }
@@ -280,7 +283,10 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
      * If session has a custom level, uses that; otherwise uses registry.
      */
     public void resetGame() {
-        if (!session.isCustomMode()) {
+        if (session.isCustomMode()) {
+            LevelDefinition customLevel = session.getCustomLevel();
+            currentLevelNumber = (customLevel != null) ? customLevel.getLevelNumber() : 1;
+        } else {
             currentLevelNumber = 1;
         }
         displayedScore = 0;
@@ -388,16 +394,25 @@ public class GameplayScene implements IScene<CrossyLaneSceneKey> {
         trafficLightSystem.renderIndicators(shapeRenderer, hudBatch, indicatorFont, glyphLayout);
 
         BitmapFont hudFont = ioManager.getFontManager().getFont("default", 14);
+        int hudLevel = session.isCustomMode() ? getActiveLevel().getLevelNumber() : currentLevelNumber;
         hudOverlay.render(shapeRenderer, hudBatch, hudFont, glyphLayout,
-                displayedScore, displayedLives, currentLevelNumber);
+                displayedScore, displayedLives, hudLevel);
     }
 
     private void drawRoad(LevelDefinition level) {
-        shapeRenderer.setColor(0.35f, 0.35f, 0.35f, 1f);
         LaneLayout laneLayout = getLaneLayout(level);
         for (int laneIndex = 0; laneIndex < level.getLaneCount(); laneIndex++) {
+            shapeRenderer.setColor(0.35f, 0.35f, 0.35f, 1f);
             shapeRenderer.rect(0f, laneLayout.getLaneBaseY(laneIndex),
                     CrossyLaneConfig.WORLD_WIDTH, CrossyLaneConfig.LANE_HEIGHT);
+
+            if (laneIndex < level.getLaneCount() - 1 && laneLayout.getSeparatorHeight() > 0f) {
+                float separatorY = laneLayout.getLaneBaseY(laneIndex) + CrossyLaneConfig.LANE_HEIGHT;
+                shapeRenderer.setColor(0.12f, 0.46f, 0.12f, 1f);
+                shapeRenderer.rect(0f, separatorY,
+                        CrossyLaneConfig.WORLD_WIDTH,
+                        laneLayout.getSeparatorHeight());
+            }
         }
     }
 

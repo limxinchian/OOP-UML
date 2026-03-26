@@ -22,7 +22,7 @@ public class CrossyLaneAudioController {
     private final AudioManager audioManager;
     private final EventBus eventBus;
 
-    private float masterVolume = 0.2f;
+    private float masterVolume = 1.0f;
 
     private final EventListener<CoinCollectedEvent> onCoin;
     private final EventListener<PlayerHitEvent> onHit;
@@ -36,16 +36,15 @@ public class CrossyLaneAudioController {
         this.eventBus = eventBus;
 
         this.onCoin = event -> audioManager.playSound(SFX_COIN);
-        this.onHit = event -> {
-            // keep empty because hit sound is now played instantly in PlayerEntity
-        };
+        this.onHit = event -> audioManager.playSound(SFX_LIFE_LOST);
         this.onLightChange = event -> audioManager.playSound(
                 event.isNowGreen() ? SFX_LIGHT_GREEN : SFX_LIGHT_RED
         );
 
         audioManager.setMasterVolume(masterVolume);
-        audioManager.setMusicVolume(1.0f);
-        audioManager.setSfxVolume(1.0f);
+        // Start with safer defaults; players can raise these in Settings.
+        audioManager.setMusicVolume(0.30f);
+        audioManager.setSfxVolume(0.40f);
 
         audioManager.preloadSound(SFX_COIN);
         audioManager.preloadSound(SFX_LIFE_LOST);
@@ -116,11 +115,6 @@ public class CrossyLaneAudioController {
 
     public void stopMusic() {
         audioManager.stopMusic();
-    }
-
-    // NEW: direct instant SFX trigger
-    public void playHitSound() {
-        audioManager.playSound(SFX_LIFE_LOST);
     }
 
     private float clamp01(float value) {

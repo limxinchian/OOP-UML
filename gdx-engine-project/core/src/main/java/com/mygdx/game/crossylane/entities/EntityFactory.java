@@ -12,6 +12,7 @@ import com.mygdx.game.crossylane.entities.additional_entity.SafeStopZoneEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
 import com.mygdx.game.crossylane.entities.additional_entity.ZebraCrossingEntity;
 import com.mygdx.game.crossylane.layout.LaneLayout;
+import com.mygdx.game.crossylane.audio.CrossyLaneAudioController;
 import com.mygdx.game.engine.event.EventBus;
 
 /**
@@ -36,15 +37,20 @@ public class EntityFactory {
     // Player
     // =========================================================================
 
-    public static PlayerEntity createPlayer(EventBus eventBus) {
+    public static PlayerEntity createPlayer(EventBus eventBus, CrossyLaneAudioController audioController) {
         return new PlayerEntity(
                 CrossyLaneConfig.PLAYER_START_X,
                 CrossyLaneConfig.PLAYER_START_Y,
-                eventBus);
+                eventBus,
+                audioController);
     }
 
-    public static PlayerEntity createPlayer(float x, float y, EventBus eventBus) {
-        return new PlayerEntity(x, y, eventBus);
+    public static PlayerEntity createPlayer(
+            float x,
+            float y,
+            EventBus eventBus,
+            CrossyLaneAudioController audioController) {
+        return new PlayerEntity(x, y, eventBus, audioController);
     }
 
     // =========================================================================

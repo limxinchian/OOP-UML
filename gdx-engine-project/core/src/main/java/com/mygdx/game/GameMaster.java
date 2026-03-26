@@ -22,7 +22,7 @@ public class GameMaster extends ApplicationAdapter {
     private EngineCore<CrossyLaneSceneKey> engine;
     private CrossyLaneSession session;
     private CrossyLaneAudioController audioController;
-    private IOManager ioManager;   // <-- add this
+    private IOManager ioManager;
 
     @Override
     public void create() {
@@ -30,7 +30,7 @@ public class GameMaster extends ApplicationAdapter {
         session = new CrossyLaneSession();
 
         SceneManager<CrossyLaneSceneKey> sceneManager = engine.getSceneManager();
-        ioManager = engine.getIoManager();   // <-- no IOManager in front
+        ioManager = engine.getIoManager();
         LevelRegistry levelRegistry = LevelRegistry.createDefaultLevels();
 
         audioController = new CrossyLaneAudioController(
@@ -56,11 +56,11 @@ public class GameMaster extends ApplicationAdapter {
 
         sceneManager.registerScene(new ResultScene(
                 session, sceneManager, ioManager, levelRegistry, audioController));
-        
+
         sceneManager.registerScene(new Settings(
-        sceneManager,
-        ioManager,
-        audioController
+            sceneManager,
+            ioManager,
+            audioController
         ));
 
         engine.initialize();

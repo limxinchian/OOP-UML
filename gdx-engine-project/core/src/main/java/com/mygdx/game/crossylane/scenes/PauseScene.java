@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.crossylane.audio.CrossyLaneAudioController;
+import com.mygdx.game.crossylane.ui.MenuUiTheme;
 import com.mygdx.game.engine.io.MouseInput;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.render.FontManager;
@@ -110,12 +111,10 @@ public class PauseScene implements IScene<CrossyLaneSceneKey> {
         float buttonHeight = clampFloat(screenH * 0.072f, 50f, 68f);
         float buttonGap = clampFloat(screenH * 0.020f, 14f, 22f);
 
-        float titleWidth = clampFloat(screenW * 0.24f, 280f, 420f);
         float titleHeight = clampFloat(screenH * 0.09f, 72f, 92f);
 
         float hintBoxHeight = clampFloat(screenH * 0.045f, 34f, 42f);
 
-        float panelPaddingX = 40f;
         float panelTopPadding = 28f;
         float gapTitleToButtons = 30f;
         float gapButtonsToHint = 24f;
@@ -123,7 +122,6 @@ public class PauseScene implements IScene<CrossyLaneSceneKey> {
 
         float menuHeight = options.length * buttonHeight + (options.length - 1) * buttonGap;
 
-        float panelWidth = menuWidth + panelPaddingX * 2f;
         float panelHeight =
                 panelTopPadding +
                 titleHeight +
@@ -221,78 +219,24 @@ public class PauseScene implements IScene<CrossyLaneSceneKey> {
         float hintBoxX = buttonX;
         float hintBoxY = panelY + panelBottomPadding;
 
-        Gdx.gl.glClearColor(0.03f, 0.03f, 0.03f, 1f);
+        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Background
-        shapeRenderer.setColor(0.03f, 0.03f, 0.03f, 1f);
-        shapeRenderer.rect(0, 0, screenW, screenH);
-
-        shapeRenderer.setColor(0.05f, 0.05f, 0.05f, 1f);
-        shapeRenderer.rect(0, 0, screenW * 0.18f, screenH);
-        shapeRenderer.rect(screenW * 0.82f, 0, screenW * 0.18f, screenH);
-
-        shapeRenderer.setColor(0.08f, 0.08f, 0.08f, 1f);
-        shapeRenderer.rect(screenW * 0.20f, 0, screenW * 0.60f, screenH);
-
-        // Main panel shadow
-        shapeRenderer.setColor(0f, 0f, 0f, 0.35f);
-        shapeRenderer.rect(panelX + 10f, panelY - 10f, panelWidth, panelHeight);
-
-        // Main panel
-        shapeRenderer.setColor(0.10f, 0.10f, 0.10f, 0.96f);
-        shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
-
-        // Top accent strip
-        shapeRenderer.setColor(0.18f, 0.18f, 0.18f, 1f);
-        shapeRenderer.rect(panelX, panelY + panelHeight - 16f, panelWidth, 16f);
-
-        // Title shadow
-        shapeRenderer.setColor(0f, 0f, 0f, 0.30f);
-        shapeRenderer.rect(titleX + 6f, titleY - 6f, titleWidth, titleHeight);
-
-        // Title bar
-        shapeRenderer.setColor(0.14f, 0.14f, 0.14f, 1f);
-        shapeRenderer.rect(titleX, titleY, titleWidth, titleHeight);
-
-        // Title highlight strip
-        shapeRenderer.setColor(0.28f, 0.28f, 0.28f, 1f);
-        shapeRenderer.rect(titleX, titleY + titleHeight - 10f, titleWidth, 10f);
+        MenuUiTheme.drawBackdrop(shapeRenderer, screenW, screenH);
+        MenuUiTheme.drawPanel(shapeRenderer, panelX, panelY, panelWidth, panelHeight);
+        MenuUiTheme.drawCard(shapeRenderer, titleX, titleY, titleWidth, titleHeight);
 
         // Buttons
         for (int i = 0; i < options.length; i++) {
             float buttonY = menuStartY - i * (buttonHeight + buttonGap);
             boolean selected = (i == selectedIndex);
 
-            shapeRenderer.setColor(0f, 0f, 0f, 0.25f);
-            shapeRenderer.rect(buttonX + 4f, buttonY - 4f, menuWidth, buttonHeight);
-
-            if (selected) {
-                shapeRenderer.setColor(0.90f, 0.80f, 0.20f, 1f);
-            } else {
-                shapeRenderer.setColor(0.22f, 0.22f, 0.22f, 1f);
-            }
-            shapeRenderer.rect(buttonX, buttonY, menuWidth, buttonHeight);
-
-            if (selected) {
-                shapeRenderer.setColor(0.98f, 0.90f, 0.40f, 1f);
-            } else {
-                shapeRenderer.setColor(0.34f, 0.34f, 0.34f, 1f);
-            }
-            shapeRenderer.rect(buttonX, buttonY + buttonHeight - 8f, menuWidth, 8f);
+            MenuUiTheme.drawButton(shapeRenderer, buttonX, buttonY, menuWidth, buttonHeight, selected);
         }
 
-        // Hint box
-        shapeRenderer.setColor(0f, 0f, 0f, 0.20f);
-        shapeRenderer.rect(hintBoxX + 3f, hintBoxY - 3f, hintBoxWidth, hintBoxHeight);
-
-        shapeRenderer.setColor(0.14f, 0.14f, 0.14f, 1f);
-        shapeRenderer.rect(hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
-
-        shapeRenderer.setColor(0.28f, 0.28f, 0.28f, 1f);
-        shapeRenderer.rect(hintBoxX, hintBoxY + hintBoxHeight - 6f, hintBoxWidth, 6f);
+        MenuUiTheme.drawCard(shapeRenderer, hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
 
         shapeRenderer.end();
 

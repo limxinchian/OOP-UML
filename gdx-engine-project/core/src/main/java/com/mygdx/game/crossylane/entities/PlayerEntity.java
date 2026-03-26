@@ -19,7 +19,6 @@ public class PlayerEntity extends Entity {
 
     private boolean walkToggle = false;
     private final EventBus eventBus;
-    private final CrossyLaneAudioController audioController;
     private final PlayerGridMovementStrategy movementStrategy = new PlayerGridMovementStrategy();
 
     public PlayerEntity(float x, float y, EventBus eventBus,
@@ -28,7 +27,6 @@ public class PlayerEntity extends Entity {
         if (audioController == null) throw new IllegalArgumentException("audioController cannot be null");
 
         this.eventBus = eventBus;
-        this.audioController = audioController;
 
         addComponent(new TransformComponent(
                 x, y,
@@ -67,10 +65,6 @@ public class PlayerEntity extends Entity {
                 int otherLayer = other.getCollisionLayer();
 
                 if (otherLayer == CrossyLaneConfig.LAYER_CAR) {
-                    // Play sound instantly here
-                    audioController.playHitSound();
-
-                    // Still publish event for gameplay logic
                     eventBus.publish(new PlayerHitEvent(PlayerEntity.this));
                 }
 

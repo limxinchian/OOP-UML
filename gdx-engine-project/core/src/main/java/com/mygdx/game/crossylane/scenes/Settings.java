@@ -61,9 +61,9 @@ public class Settings implements IScene<CrossyLaneSceneKey> {
         if (uiCamera == null) uiCamera = new OrthographicCamera();
 
         FontManager fonts = ioManager.getFontManager();
-        titleFont = fonts.getFont("default", 28);
+        titleFont = fonts.getFont("default", 30);
         labelFont = fonts.getFont("default", 18);
-        valueFont = fonts.getFont("default", 16);
+        valueFont = fonts.getFont("default", 18);
         hintFont  = fonts.getFont("default", 13);
 
         musicVolume = audioController.getMusicVolume();
@@ -265,37 +265,37 @@ public class Settings implements IScene<CrossyLaneSceneKey> {
         float hintBoxY = panelY + panelBottomPadding;
         float hintBoxWidth = panelWidth;
 
-        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
+        Gdx.gl.glClearColor(0.08f, 0.12f, 0.09f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        shapeRenderer.setColor(0.06f, 0.08f, 0.14f, 1f);
+        shapeRenderer.setColor(0.08f, 0.12f, 0.09f, 1f);
         shapeRenderer.rect(0, 0, screenW, screenH);
 
-        shapeRenderer.setColor(0.04f, 0.06f, 0.10f, 1f);
+        shapeRenderer.setColor(0.06f, 0.10f, 0.08f, 1f);
         shapeRenderer.rect(0, 0, screenW * 0.18f, screenH);
         shapeRenderer.rect(screenW * 0.82f, 0, screenW * 0.18f, screenH);
 
-        shapeRenderer.setColor(0.08f, 0.12f, 0.20f, 1f);
+        shapeRenderer.setColor(0.10f, 0.17f, 0.11f, 1f);
         shapeRenderer.rect(screenW * 0.20f, 0, screenW * 0.60f, screenH);
 
         shapeRenderer.setColor(0f, 0f, 0f, 0.30f);
         shapeRenderer.rect(panelX + 10f, panelY - 10f, panelWidth, panelHeight);
 
-        shapeRenderer.setColor(0.10f, 0.16f, 0.28f, 0.95f);
+        shapeRenderer.setColor(0.10f, 0.18f, 0.10f, 0.92f);
         shapeRenderer.rect(panelX, panelY, panelWidth, panelHeight);
 
-        shapeRenderer.setColor(0.18f, 0.28f, 0.48f, 1f);
+        shapeRenderer.setColor(0.18f, 0.32f, 0.18f, 1f);
         shapeRenderer.rect(panelX, panelY + panelHeight - 16f, panelWidth, 16f);
 
         shapeRenderer.setColor(0f, 0f, 0f, 0.28f);
         shapeRenderer.rect(titleX + 6f, titleY - 6f, titleWidth, titleHeight);
 
-        shapeRenderer.setColor(0.18f, 0.28f, 0.48f, 1f);
+        shapeRenderer.setColor(0.18f, 0.32f, 0.18f, 1f);
         shapeRenderer.rect(titleX, titleY, titleWidth, titleHeight);
 
-        shapeRenderer.setColor(0.30f, 0.45f, 0.75f, 1f);
+        shapeRenderer.setColor(0.28f, 0.45f, 0.28f, 1f);
         shapeRenderer.rect(titleX, titleY + titleHeight - 10f, titleWidth, 10f);
 
         for (int row = 0; row < ROW_COUNT; row++) {
@@ -309,14 +309,14 @@ public class Settings implements IScene<CrossyLaneSceneKey> {
                 if (selected) {
                     shapeRenderer.setColor(0.90f, 0.80f, 0.20f, 1f);
                 } else {
-                    shapeRenderer.setColor(0.24f, 0.34f, 0.58f, 1f);
+                    shapeRenderer.setColor(0.26f, 0.48f, 0.26f, 1f);
                 }
                 shapeRenderer.rect(panelX, rowY, panelWidth, rowHeight);
             } else {
                 if (selected) {
-                    shapeRenderer.setColor(0.22f, 0.27f, 0.48f, 1f);
+                    shapeRenderer.setColor(0.24f, 0.30f, 0.24f, 1f);
                 } else {
-                    shapeRenderer.setColor(0.15f, 0.20f, 0.36f, 1f);
+                    shapeRenderer.setColor(0.18f, 0.26f, 0.18f, 1f);
                 }
                 shapeRenderer.rect(panelX, rowY, panelWidth, rowHeight);
 
@@ -338,10 +338,10 @@ public class Settings implements IScene<CrossyLaneSceneKey> {
         shapeRenderer.setColor(0f, 0f, 0f, 0.18f);
         shapeRenderer.rect(hintBoxX + 3f, hintBoxY - 3f, hintBoxWidth, hintBoxHeight);
 
-        shapeRenderer.setColor(0.14f, 0.20f, 0.34f, 1f);
+        shapeRenderer.setColor(0.20f, 0.38f, 0.20f, 1f);
         shapeRenderer.rect(hintBoxX, hintBoxY, hintBoxWidth, hintBoxHeight);
 
-        shapeRenderer.setColor(0.30f, 0.45f, 0.75f, 1f);
+        shapeRenderer.setColor(0.30f, 0.50f, 0.30f, 1f);
         shapeRenderer.rect(hintBoxX, hintBoxY + hintBoxHeight - 6f, hintBoxWidth, 6f);
 
         shapeRenderer.end();

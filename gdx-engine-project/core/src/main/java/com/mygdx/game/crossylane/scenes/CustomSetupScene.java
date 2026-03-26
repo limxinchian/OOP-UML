@@ -75,9 +75,9 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         if (uiCamera == null) uiCamera = new OrthographicCamera();
 
         FontManager fonts = ioManager.getFontManager();
-        titleFont = fonts.getFont("default", 26);
-        labelFont = fonts.getFont("default", 17);
-        valueFont = fonts.getFont("default", 20);
+        titleFont = fonts.getFont("default", 30);
+        labelFont = fonts.getFont("default", 18);
+        valueFont = fonts.getFont("default", 18);
         hintFont  = fonts.getFont("default", 13);
 
         laneCount = 3;
@@ -188,13 +188,8 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
             lanes.add(new LaneDefinition(i, vehiclesPerLane, speed, direction));
         }
 
-        List<TrafficLightDefinition> lights;
-        if (laneCount >= 2) {
-            lights = Collections.singletonList(
-                    new TrafficLightDefinition(0, 3.5f, -50, 50));
-        } else {
-            lights = Collections.emptyList();
-        }
+        List<TrafficLightDefinition> lights = Collections.singletonList(
+            new TrafficLightDefinition(0, 3.5f, -50, 50));
 
         return new LevelDefinition(1, lanes, 2, 3, 3.5f, lights);
     }
@@ -248,28 +243,28 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         float hintBoxX = panelX;
         float hintBoxY = panelY + panelPaddingBottom;
 
-        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
+        Gdx.gl.glClearColor(0.08f, 0.12f, 0.09f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        shapeRenderer.setColor(0.06f, 0.08f, 0.14f, 1f);
+        shapeRenderer.setColor(0.08f, 0.12f, 0.09f, 1f);
         shapeRenderer.rect(0, 0, screenW, screenH);
 
-        shapeRenderer.setColor(0.04f, 0.06f, 0.10f, 1f);
+        shapeRenderer.setColor(0.06f, 0.10f, 0.08f, 1f);
         shapeRenderer.rect(0, 0, screenW * 0.18f, screenH);
         shapeRenderer.rect(screenW * 0.82f, 0, screenW * 0.18f, screenH);
 
-        shapeRenderer.setColor(0.08f, 0.12f, 0.20f, 1f);
+        shapeRenderer.setColor(0.10f, 0.17f, 0.11f, 1f);
         shapeRenderer.rect(screenW * 0.20f, 0, screenW * 0.60f, screenH);
 
         shapeRenderer.setColor(0f, 0f, 0f, 0.30f);
         shapeRenderer.rect(outerPanelX + 8f, outerPanelY - 8f, outerPanelW, outerPanelH);
 
-        shapeRenderer.setColor(0.10f, 0.16f, 0.28f, 0.95f);
+        shapeRenderer.setColor(0.10f, 0.18f, 0.10f, 0.92f);
         shapeRenderer.rect(outerPanelX, outerPanelY, outerPanelW, outerPanelH);
 
-        shapeRenderer.setColor(0.18f, 0.28f, 0.48f, 1f);
+        shapeRenderer.setColor(0.18f, 0.32f, 0.18f, 1f);
         shapeRenderer.rect(outerPanelX, outerPanelY + outerPanelH - 16f, outerPanelW, 16f);
 
         for (int row = 0; row < ROW_COUNT; row++) {
@@ -286,9 +281,9 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
                 shapeRenderer.rect(panelX, rowY, panelWidth, rowHeight);
             } else {
                 if (selected) {
-                    shapeRenderer.setColor(0.22f, 0.27f, 0.48f, 1f);
+                    shapeRenderer.setColor(0.24f, 0.30f, 0.24f, 1f);
                 } else {
-                    shapeRenderer.setColor(0.15f, 0.19f, 0.34f, 1f);
+                    shapeRenderer.setColor(0.18f, 0.26f, 0.18f, 1f);
                 }
                 shapeRenderer.rect(panelX, rowY, panelWidth, rowHeight);
 
@@ -296,7 +291,7 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
                 float minusBtnX = plusBtnX - buttonSize - 16f;
                 float btnY = rowY + (rowHeight - buttonSize) / 2f;
 
-                shapeRenderer.setColor(0.34f, 0.39f, 0.60f, 1f);
+                shapeRenderer.setColor(0.34f, 0.49f, 0.34f, 1f);
                 shapeRenderer.rect(minusBtnX, btnY, buttonSize, buttonSize);
                 shapeRenderer.rect(plusBtnX, btnY, buttonSize, buttonSize);
             }
@@ -305,10 +300,10 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
         shapeRenderer.setColor(0f, 0f, 0f, 0.18f);
         shapeRenderer.rect(hintBoxX + 3f, hintBoxY - 3f, panelWidth, hintBoxHeight);
 
-        shapeRenderer.setColor(0.18f, 0.28f, 0.48f, 1f);
+        shapeRenderer.setColor(0.20f, 0.38f, 0.20f, 1f);
         shapeRenderer.rect(hintBoxX, hintBoxY, panelWidth, hintBoxHeight);
 
-        shapeRenderer.setColor(0.30f, 0.45f, 0.75f, 1f);
+        shapeRenderer.setColor(0.30f, 0.50f, 0.30f, 1f);
         shapeRenderer.rect(hintBoxX, hintBoxY + hintBoxHeight - 6f, panelWidth, 6f);
 
         shapeRenderer.end();
@@ -322,7 +317,7 @@ public class CustomSetupScene implements IScene<CrossyLaneSceneKey> {
                 screenW / 2f - layout.width / 2f,
                 outerPanelY + outerPanelH - 34f);
 
-        String[] labels = { "Lanes", "Vehicles / Lane", "Speed" };
+        String[] labels = { "Lanes", "Vehicles", "Speed" };
         String[] values = {
                 String.valueOf(laneCount),
                 String.valueOf(vehiclesPerLane),

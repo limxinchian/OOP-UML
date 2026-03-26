@@ -90,6 +90,6 @@ public class SceneNavigator {
     }
 
     public void goToSettings() {
-    sceneManager.changeScene(CrossyLaneSceneKey.SETTINGS);
+        sceneManager.changeScene(CrossyLaneSceneKey.SETTINGS);
     }
 }

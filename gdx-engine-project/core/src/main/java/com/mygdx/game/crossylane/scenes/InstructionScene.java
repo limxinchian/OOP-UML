@@ -4,10 +4,12 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.mygdx.game.crossylane.ui.MenuUiTheme;
 import com.mygdx.game.engine.managers.IOManager;
 import com.mygdx.game.engine.render.FontManager;
 import com.mygdx.game.engine.scene.IScene;
@@ -28,6 +30,7 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batch;
     private GlyphLayout layout;
+    private OrthographicCamera uiCamera;
 
     private BitmapFont titleFont;
     private BitmapFont bodyFont;
@@ -48,6 +51,7 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
         if (shapeRenderer == null) shapeRenderer = new ShapeRenderer();
         if (batch == null) batch = new SpriteBatch();
         if (layout == null) layout = new GlyphLayout();
+        if (uiCamera == null) uiCamera = new OrthographicCamera();
 
         FontManager fonts = ioManager.getFontManager();
         titleFont  = fonts.getFont("default", 26);
@@ -68,22 +72,44 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
     @Override
     public void afterWorldUpdate(float delta) { }
 
-    @Override
-    public void render() {
+    private void updateUiCamera() {
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
 
-        Gdx.gl.glClearColor(0.08f, 0.12f, 0.20f, 1f);
+        uiCamera.setToOrtho(false, screenW, screenH);
+        uiCamera.position.set(screenW / 2f, screenH / 2f, 0f);
+        uiCamera.update();
+
+        batch.setProjectionMatrix(uiCamera.combined);
+        shapeRenderer.setProjectionMatrix(uiCamera.combined);
+    }
+
+    @Override
+    public void render() {
+        updateUiCamera();
+
+        float screenW = Gdx.graphics.getWidth();
+        float screenH = Gdx.graphics.getHeight();
+
+        Gdx.gl.glClearColor(0.06f, 0.08f, 0.14f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        float panelX = 60f;
-        float panelY = 60f;
-        float panelW = screenW - 120f;
-        float panelH = screenH - 120f;
+        float panelX = clampFloat(screenW * 0.10f, 40f, 120f);
+        float panelY = clampFloat(screenH * 0.10f, 40f, 100f);
+        float panelW = screenW - panelX * 2f;
+        float panelH = screenH - panelY * 2f;
+
+        float titleBandHeight = clampFloat(screenH * 0.11f, 72f, 102f);
+        float hintBandHeight = clampFloat(screenH * 0.09f, 54f, 74f);
+        float textX = panelX + clampFloat(screenW * 0.04f, 28f, 60f);
+        float firstLineY = panelY + panelH - titleBandHeight - 30f;
+        float lineGap = clampFloat(screenH * 0.055f, 28f, 46f);
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.15f, 0.22f, 0.35f, 1f);
-        shapeRenderer.rect(panelX, panelY, panelW, panelH);
+        MenuUiTheme.drawBackdrop(shapeRenderer, screenW, screenH);
+        MenuUiTheme.drawPanel(shapeRenderer, panelX, panelY, panelW, panelH);
+        MenuUiTheme.drawCard(shapeRenderer, panelX, panelY + panelH - titleBandHeight, panelW, titleBandHeight);
+        MenuUiTheme.drawCard(shapeRenderer, panelX, panelY, panelW, hintBandHeight);
         shapeRenderer.end();
 
         batch.begin();
@@ -92,14 +118,11 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
         titleFont.setColor(Color.WHITE);
         layout.setText(titleFont, "HOW TO PLAY");
         titleFont.draw(batch, "HOW TO PLAY",
-                screenW / 2f - layout.width / 2f,
-                panelY + panelH - 40f);
+            screenW / 2f - layout.width / 2f,
+            panelY + panelH - titleBandHeight / 2f + layout.height / 2f - 2f);
 
         // Instructions
         bodyFont.setColor(Color.WHITE);
-        float textX = panelX + 40f;
-        float firstLineY = panelY + panelH - 105f;
-        float lineGap = 40f;
 
         bodyFont.draw(batch,
                 "1. Use arrow keys or WASD to move the chicken.",
@@ -121,13 +144,18 @@ public class InstructionScene implements IScene<CrossyLaneSceneKey> {
                 textX, firstLineY - lineGap * 5);
 
         // Bottom hint
-        bottomFont.setColor(Color.YELLOW);
-        String bottomText = "Press ESC to return to Main Menu";
+        bottomFont.setColor(0.92f, 0.96f, 1f, 1f);
+        String bottomText = "ESC: Back to Main Menu";
         layout.setText(bottomFont, bottomText);
         bottomFont.draw(batch, bottomText,
-                screenW / 2f - layout.width / 2f, panelY + 25f);
+            screenW / 2f - layout.width / 2f,
+            panelY + hintBandHeight / 2f + layout.height / 2f - 2f);
 
         batch.end();
+    }
+
+    private float clampFloat(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     @Override
