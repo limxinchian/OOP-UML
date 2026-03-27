@@ -1,7 +1,7 @@
 package com.mygdx.game.engine.render;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.mygdx.game.engine.ecs.Component;
+import com.mygdx.game.engine.entity.Component;
 
 public class TextureComponent extends Component {
 

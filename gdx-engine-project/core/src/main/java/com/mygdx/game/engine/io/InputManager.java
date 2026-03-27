@@ -3,9 +3,9 @@ package com.mygdx.game.engine.io;
 import java.util.Map;
 
 import com.badlogic.gdx.Gdx;
-import com.mygdx.game.engine.ecs.Entity;
-import com.mygdx.game.engine.managers.EntityManager;
-import com.mygdx.game.engine.managers.IManager;
+import com.mygdx.game.engine.entity.Entity;
+import com.mygdx.game.engine.entity.EntityManager;
+import com.mygdx.game.engine.core.IManager;
 
 /**
  * Engine-level input manager:

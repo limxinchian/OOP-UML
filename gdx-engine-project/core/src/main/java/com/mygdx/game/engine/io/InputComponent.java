@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.mygdx.game.engine.ecs.Component;
+import com.mygdx.game.engine.entity.Component;
 
 /**
  * Generic input mapping component.

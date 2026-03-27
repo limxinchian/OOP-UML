@@ -1,7 +1,7 @@
 package com.mygdx.game.engine.movement;
 
-import com.mygdx.game.engine.ecs.PhysicsComponent;
-import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.entity.PhysicsComponent;
+import com.mygdx.game.engine.entity.TransformComponent;
 
 public class BasicMovementStrategy implements MovementStrategy {
     @Override

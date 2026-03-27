@@ -1,7 +1,7 @@
 package com.mygdx.game.engine.collision;
 
-import com.mygdx.game.engine.ecs.Component;
-import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.entity.Component;
+import com.mygdx.game.engine.entity.TransformComponent;
 import com.mygdx.game.engine.math.Rectangle;
 import com.mygdx.game.engine.math.Vector2;
 

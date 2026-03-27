@@ -1,6 +1,6 @@
 package com.mygdx.game.engine.movement;
 
-import com.mygdx.game.engine.ecs.Component;
+import com.mygdx.game.engine.entity.Component;
 
 /**
  * Optional per-entity movement strategy.

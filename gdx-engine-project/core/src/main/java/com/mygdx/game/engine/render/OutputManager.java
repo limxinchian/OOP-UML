@@ -12,8 +12,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.mygdx.game.engine.ecs.Entity;
-import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.entity.Entity;
+import com.mygdx.game.engine.entity.TransformComponent;
 
 /**
  * Engine-level rendering manager.

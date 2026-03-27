@@ -1,208 +1,711 @@
 ---
 config:
   layout: elk
+  theme: base
+  themeVariables:
+    background: "#fafbfe"
+    primaryTextColor: "#1f2937"
+    lineColor: "#9aa4b2"
+  themeCSS: |
+    #classId-EngineLayer-0 rect,
+    #classId-EngineLayer-0 path {
+      fill: #dbeafe !important;
+      stroke: #3b82f6 !important;
+      stroke-width: 2px !important;
+    }
+
+    #classId-CrossyLaneLayer-0 rect,
+    #classId-CrossyLaneLayer-0 path {
+      fill: #dcfce7 !important;
+      stroke: #22c55e !important;
+      stroke-width: 2px !important;
+    }
+
+    .cluster rect {
+      rx: 12px;
+      ry: 12px;
+      stroke-width: 1.5px;
+      fill-opacity: 0.32;
+    }
+
+    g.cluster#Engine_Core rect { fill: #dbeafe !important; stroke: #60a5fa !important; }
+    g.cluster#Engine_Scene rect { fill: #e0f2fe !important; stroke: #67c3ff !important; }
+    g.cluster#Engine_Entity rect { fill: #ede9fe !important; stroke: #a78bfa !important; }
+    g.cluster#Engine_Movement rect { fill: #e0e7ff !important; stroke: #818cf8 !important; }
+    g.cluster#Engine_Collision rect { fill: #fee2e2 !important; stroke: #f87171 !important; }
+    g.cluster#Engine_IO rect { fill: #ffedd5 !important; stroke: #fb923c !important; }
+    g.cluster#Engine_Render_Audio rect { fill: #fef3c7 !important; stroke: #fbbf24 !important; }
+    g.cluster#Engine_Event_Math rect { fill: #dcfce7 !important; stroke: #4ade80 !important; }
+
+    g.cluster#Game_App_Config rect { fill: #fde68a !important; stroke: #f59e0b !important; }
+    g.cluster#Game_Scene rect { fill: #d9f99d !important; stroke: #84cc16 !important; }
+    g.cluster#Game_Entity_Movement rect { fill: #ddd6fe !important; stroke: #8b5cf6 !important; }
+    g.cluster#Game_Traffic_Event_UI rect { fill: #fecdd3 !important; stroke: #fb7185 !important; }
+
+    .cluster-label text,
+    .cluster-label span,
+    .cluster-label p {
+      font-weight: 700 !important;
+      color: #1f2937 !important;
+      fill: #1f2937 !important;
+    }
 ---
 classDiagram
-direction TB
+direction LR
 
-%% --- Core Engine Management ---
-class GameMaster {
-  -running: boolean
-  -deltaTime: float
-  -sceneManager: SceneManager
-  +init(): void
-  +run(): void
-  +dispose(): void
+class EngineLayer {
+  <<layer>>
+  Engine
 }
 
-class IManager {
-  <<interface>>
-  +initialize(): void
-  +update(deltaTime: float): void
-  +shutdown(): void
+class CrossyLaneLayer {
+  <<layer>>
+  CrossyLane
 }
 
-class SceneManager {
-  -currentScene: Scene
-  -scenes: Map~String, Scene~
-  +addScene(name: String, scene: Scene): void
-  +loadScene(name: String): void
-  +unloadScene(name: String): void
-  +transitionTo(name: String): void
-  +getCurrentScene(): Scene
+namespace Engine_Core {
+  class EngineCore {
+    -entityManager: EntityManager
+    -movementManager: MovementManager
+    -collisionManager: CollisionManager
+    -ioManager: IOManager
+    -eventBus: EventBus
+    -sceneManager: SceneManager
+    -initialized: boolean
+    -disposed: boolean
+    +EngineCore(worldWidth: float, worldHeight: float)
+    +initialize(): void
+    +startScene(key: K): void
+    +tick(dt: float): void
+    +render(): void
+    +dispose(): void
+    +getEntityManager(): EntityManager
+    +getMovementManager(): MovementManager
+    +getCollisionManager(): CollisionManager
+    +getIoManager(): IOManager
+    +getEventBus(): EventBus
+    +getSceneManager(): SceneManager~K~
+  }
+
+  class IManager {
+    <<interface>>
+    +initialize(): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+  }
 }
 
-class Scene {
-  <<abstract>>
-  -name: String
-  #entityManager: EntityManager
-  #collisionManager: CollisionManager
-  #movementManager: MovementManager
-  #ioManager: IOManager
-  +onEnter(): void
-  +onExit(): void
-  +update(deltaTime: float): void
-  +render(): void
-  +dispose(): void
+namespace Engine_Scene {
+  class SceneManager {
+    -scenes: Map~K, IScene~K~~
+    -sceneStack: Deque~K~
+    -currentScene: IScene~K~
+    -previousSceneKey: K
+    +registerScene(scene: IScene~K~): void
+    +unregisterScene(key: K, dispose: boolean): void
+    +start(key: K): void
+    +changeScene(key: K): void
+    +resetTo(key: K): void
+    +pushScene(key: K): void
+    +popScene(): void
+    +update(delta: float): void
+    +afterWorldUpdate(delta: float): void
+    +render(): void
+    +dispose(): void
+  }
+
+  class IScene {
+    <<interface>>
+    +getKey(): K
+    +onEnter(): void
+    +onExit(): void
+    +update(delta: float): void
+    +afterWorldUpdate(delta: float): void
+    +updatesWorld(): boolean
+    +render(): void
+    +dispose(): void
+  }
 }
 
-%% --- Entity Component System (ECS) Core ---
-class Entity {
-  -id: UUID
-  -active: boolean
-  -components: Map~Type, Component~
-  +addComponent(component: Component): void
-  +removeComponent(type: Type): void
-  +getComponent(type: Type): Component
-  +setActive(active: boolean): void
-  +isActive(): boolean
+namespace Engine_Entity {
+  class EntityManager {
+    -entities: List~Entity~
+    -entitiesToAdd: List~Entity~
+    -entitiesToRemove: List~Entity~
+    +initialize(): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+    +addEntity(entity: Entity): void
+    +removeEntity(entity: Entity): void
+    +getEntityCount(): int
+    +getEntities(): List~Entity~
+    +getEntitiesWith(componentTypes): List~Entity~
+  }
+
+  class Entity {
+    -id: UUID
+    -active: boolean
+    -components: Map~Class, Component~
+    +Entity()
+    +getId(): UUID
+    +addComponent(component: Component): void
+    +removeComponent(type: Class): void
+    +clearComponents(): void
+    +hasComponent(type: Class): boolean
+    +getComponent(type: Class): Component
+    +setActive(active: boolean): void
+    +isActive(): boolean
+  }
+
+  class Component {
+    <<abstract>>
+    #owner: Entity
+    #enabled: boolean
+    +getOwner(): Entity
+    +onAttach(entity: Entity): void
+    +onDetach(): void
+    +dispose(): void
+    +setEnabled(enabled: boolean): void
+    +isEnabled(): boolean
+  }
+
+  class TransformComponent {
+    -positionX: float
+    -positionY: float
+    -width: float
+    -height: float
+    -rotation: float
+    +TransformComponent(x: float, y: float, width: float, height: float)
+    +translate(dx: float, dy: float): void
+    +setPosition(x: float, y: float): void
+    +getPositionX(): float
+    +getPositionY(): float
+    +getWidth(): float
+    +getHeight(): float
+  }
+
+  class PhysicsComponent {
+    -velocityX: float
+    -velocityY: float
+    -mass: float
+    +PhysicsComponent(velocityX: float, velocityY: float, mass: float)
+    +getVelocityX(): float
+    +getVelocityY(): float
+    +setVelocityX(value: float): void
+    +setVelocityY(value: float): void
+  }
 }
 
-class EntityManager {
-  -entities: List~Entity~
-  -entitiesToAdd: List~Entity~
-  -entitiesToRemove: List~Entity~
-  +addEntity(entity: Entity): void
-  +removeEntity(entity: Entity): void
-  +getEntityCount(): int
-  +getEntities(): List~Entity~
+namespace Engine_Movement {
+  class MovementManager {
+    -globalStrategies: List~MovementStrategy~
+    -entityManager: EntityManager
+    -defaultStrategy: MovementStrategy
+    +MovementManager(entityManager: EntityManager)
+    +initialize(): void
+    +addMovementStrategy(strategy: MovementStrategy): void
+    +removeMovementStrategy(strategy: MovementStrategy): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+  }
+
+  class MovementComponent {
+    -strategy: MovementStrategy
+    +MovementComponent(strategy: MovementStrategy)
+    +getStrategy(): MovementStrategy
+    +setStrategy(strategy: MovementStrategy): void
+  }
+
+  class MovementStrategy {
+    <<interface>>
+    +applyMovement(transform: TransformComponent, physics: PhysicsComponent, delta: float): void
+  }
+
+  class BasicMovementStrategy {
+    +applyMovement(transform: TransformComponent, physics: PhysicsComponent, delta: float): void
+  }
+
+  class ScreenWrapSystem {
+    +wrap(entity: Entity, worldWidth: float): void
+  }
 }
 
-%% --- Components ---
-class Component {
-  <<abstract>>
-  #owner: Entity
-  #enabled: boolean
-  +onAttach(entity: Entity): void
-  +onDetach(): void
-  +setEnabled(enabled: boolean): void
-  +isEnabled(): boolean
+namespace Engine_Collision {
+  class CollisionManager {
+    -entityManager: EntityManager
+    -activePairs: Map~String, Pair~
+    -cellSize: float
+    +CollisionManager(entityManager: EntityManager)
+    +setBroadphaseCellSize(cellSize: float): void
+    +initialize(): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+  }
+
+  class CollisionComponent {
+    -collisionLayer: int
+    -collisionMask: int
+    -trigger: boolean
+    +CollisionComponent(layer: int, mask: int, trigger: boolean)
+    +getBounds(): Rectangle
+    +onCollisionEnter(other: CollisionComponent): void
+    +onCollisionExit(other: CollisionComponent): void
+    +canCollideWith(other: CollisionComponent): boolean
+    +getCollisionLayer(): int
+    +isTrigger(): boolean
+  }
+
+  class CollisionInfo {
+    -mtv: Vector2
+    -overlapX: float
+    -overlapY: float
+    +CollisionInfo(mtv: Vector2, overlapX: float, overlapY: float)
+    +getMtvX(): float
+    +getMtvY(): float
+  }
 }
 
-class TransformComponent {
-  +positionX: float
-  +positionY: float
-  +width: float
-  +height: float
-  +rotation: float
+namespace Engine_IO {
+  class IOManager {
+    -inputManager: InputManager
+    -mouseInput: MouseInput
+    -outputManager: OutputManager
+    -fontManager: FontManager
+    -audioManager: AudioManager
+    +IOManager(entityManager: EntityManager, worldWidth: float, worldHeight: float)
+    +getInput(): InputManager
+    +getMouse(): MouseInput
+    +getOutput(): OutputManager
+    +getFontManager(): FontManager
+    +getAudio(): AudioManager
+    +initialize(): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+  }
+
+  class InputManager {
+    -entityManager: EntityManager
+    +InputManager(entityManager: EntityManager)
+    +initialize(): void
+    +update(deltaTime: float): void
+    +shutdown(): void
+  }
+
+  class InputComponent {
+    -pressBindings: Map~Integer, Command~
+    -holdBindings: Map~Integer, Command~
+    +bindJustPressed(key: int, command: Command): void
+    +bindHeld(key: int, command: Command): void
+    +getPressBindings(): Map~Integer, Command~
+    +getHoldBindings(): Map~Integer, Command~
+  }
+
+  class MouseInput {
+    +getX(): float
+    +getY(): float
+    +isLeftPressed(): boolean
+  }
+
+  class Command {
+    <<interface>>
+    +execute(entity: Entity, delta: float): void
+  }
 }
 
-class PhysicsComponent {
-  +velocityX: float
-  +velocityY: float
-  +mass: float
+namespace Engine_Render_Audio {
+  class OutputManager {
+    -worldWidth: float
+    -worldHeight: float
+    +OutputManager(worldWidth: float, worldHeight: float)
+    +initialize(): void
+    +resize(width: int, height: int): void
+    +dispose(): void
+  }
+
+  class FontManager {
+    +getFont(name: String, size: int)
+    +dispose(): void
+  }
+
+  class AudioManager {
+    +playSound(path: String): void
+    +playMusic(path: String, looping: boolean): void
+    +pauseMusic(): void
+    +resumeMusic(): void
+    +stopMusic(): void
+    +dispose(): void
+  }
+
+  class RenderableComponent {
+    -shape: RenderShape
+    +RenderableComponent(shape: RenderShape)
+  }
+
+  class TextureComponent {
+    -texturePath: String
+    -flipX: boolean
+    +TextureComponent(texturePath: String)
+    +setTexture(path: String): void
+    +setFlipX(flip: boolean): void
+  }
+
+  class RenderShape {
+    <<enumeration>>
+    RECTANGLE
+    CIRCLE
+  }
 }
 
-class CollisionComponent {
-  -collisionLayer: int
-  -trigger: boolean
-  -boundsOffset: Vector2
-  -transform: TransformComponent
-  +getBounds(): Rectangle
-  +onCollisionEnter(other: CollisionComponent): void
-  +setCollisionLayer(layer: int): void
-  +getCollisionLayer(): int
-  +canCollideWith(other: CollisionComponent): boolean
-  +isTrigger(): boolean
-  +setTrigger(trigger: boolean): void
-  +getBoundsOffset(): Vector2
-  +setBoundsOffset(offset: Vector2): void
-  +update(deltaTime: float): void
+namespace Engine_Event_Math {
+  class EventBus {
+    -listeners: Map~Class, List~EventListener~~
+    +subscribe(eventType: Class, listener: EventListener): void
+    +unsubscribe(eventType: Class, listener: EventListener): void
+    +publish(event: GameEvent): void
+    +clear(): void
+  }
+
+  class GameEvent {
+    <<interface>>
+  }
+
+  class EventListener {
+    <<interface>>
+    +onEvent(event: GameEvent): void
+  }
+
+  class Vector2 {
+    -x: float
+    -y: float
+    +Vector2(x: float, y: float)
+    +set(x: float, y: float): void
+    +setX(x: float): void
+    +setY(y: float): void
+  }
+
+  class Rectangle {
+    -x: float
+    -y: float
+    -width: float
+    -height: float
+    +Rectangle(x: float, y: float, width: float, height: float)
+    +overlaps(other: Rectangle): boolean
+    +getRight(): float
+    +getTop(): float
+  }
+
+  class MathUtil {
+    +clamp(value: float, min: float, max: float): float
+    +lerp(a: float, b: float, t: float): float
+  }
 }
 
-%% --- Utility Classes ---
-class Vector2 {
-  +x: float
-  +y: float
-  +Vector2()
-  +Vector2(x: float, y: float)
-  +set(x: float, y: float): void
-  +copy(): Vector2
+namespace Game_App_Config {
+  class GameMaster {
+    -engine: EngineCore~CrossyLaneSceneKey~
+    -session: CrossyLaneSession
+    -audioController: CrossyLaneAudioController
+    -ioManager: IOManager
+    +create(): void
+    +render(): void
+    +resize(width: int, height: int): void
+    +dispose(): void
+  }
+
+  class CrossyLaneConfig {
+    <<static>>
+  }
+
+  class LevelRegistry {
+    +createDefaultLevels(): LevelRegistry
+    +getLevel(levelNumber: int): LevelDefinition
+  }
+
+  class LevelDefinition {
+    -levelNumber: int
+    -lanes: List~LaneDefinition~
+    -trafficLights: List~TrafficLightDefinition~
+    +getLevelNumber(): int
+    +getLanes(): List~LaneDefinition~
+    +getTrafficLights(): List~TrafficLightDefinition~
+  }
+
+  class LaneDefinition {
+    -laneIndex: int
+    -carCount: int
+    -speed: float
+    -direction: int
+  }
+
+  class TrafficLightDefinition {
+    -controlledLaneIndex: int
+    -switchInterval: float
+    -redScoreDelta: int
+    -greenScoreDelta: int
+  }
 }
 
-class Rectangle {
-  +x: float
-  +y: float
-  +width: float
-  +height: float
-  +Rectangle(x: float, y: float, width: float, height: float)
-  +overlaps(other: Rectangle): boolean
+namespace Game_Scene {
+  class CrossyLaneSceneKey {
+    <<enumeration>>
+    MAIN_MENU
+    INSTRUCTIONS
+    CUSTOM_SETUP
+    GAMEPLAY
+    PAUSE
+    RESULT
+    SETTINGS
+  }
+
+  class MainMenuScene
+  class InstructionScene
+  class CustomSetupScene
+  class PauseScene
+  class ResultScene
+  class SettingsScene
+  class SceneNavigator
+
+  class GameplayScene {
+    -cars: List~CarEntity~
+    -grassZones: List~GrassZoneEntity~
+    -coins: List~CoinEntity~
+    -trafficLightSystem: TrafficLightSystem
+    -player: PlayerEntity
+    -goalZone: GoalZoneEntity
+    -hudOverlay: GameplayHudOverlay
+    -session: CrossyLaneSession
+    -levelRegistry: LevelRegistry
+    +getKey(): CrossyLaneSceneKey
+    +onEnter(): void
+    +onExit(): void
+    +update(delta: float): void
+    +afterWorldUpdate(delta: float): void
+  }
 }
 
-%% --- Managers (Systems) ---
-class CollisionManager {
-  -collisionComponents: List~CollisionComponent~
-  +detectCollisions(): void
-  +checkCollision(a: CollisionComponent, b: CollisionComponent): boolean
-  #handleCollision(a: CollisionComponent, b: CollisionComponent): void
-  +canCollide(a: CollisionComponent, b: CollisionComponent): boolean
-  +addCollisionComponent(component: CollisionComponent): void
-  +removeCollisionComponent(component: CollisionComponent): void
+namespace Game_Entity_Movement {
+  class EntityFactory {
+    +createPlayer(eventBus: EventBus, audioController: CrossyLaneAudioController): PlayerEntity
+    +createCarsForLevel(level: LevelDefinition, laneLayout: LaneLayout): List~CarEntity~
+    +createGoalZone(): GoalZoneEntity
+    +createBottomGrass(): GrassZoneEntity
+    +createCoinsForRoadLanes(layout: LaneLayout, count: int, eventBus: EventBus): List~CoinEntity~
+    +createStartLineTrafficLight(): TrafficLightEntity
+  }
+
+  class PlayerEntity {
+    -eventBus: EventBus
+    -movementStrategy: PlayerGridMovementStrategy
+    -walkToggle: boolean
+    +PlayerEntity(x: float, y: float, eventBus: EventBus, audioController: CrossyLaneAudioController)
+    +resetPosition(): void
+  }
+
+  class CarEntity
+  class GoalZoneEntity
+  class GrassZoneEntity
+  class LaneMarkerEntity
+  class CoinEntity
+  class TrafficLightEntity
+  class ZebraCrossingEntity
+  class SafeStopZoneEntity
+
+  class PlayerGridMovementStrategy {
+    -moveDuration: float
+    +requestMove(transform: TransformComponent, physics: PhysicsComponent, dx: float, dy: float): void
+    +reset(physics: PhysicsComponent): void
+    +applyMovement(transform: TransformComponent, physics: PhysicsComponent, delta: float): void
+  }
+
+  class CarWrapSystem {
+    +wrapAll(cars: List~CarEntity~, worldWidth: float): void
+  }
 }
 
-class MovementManager {
-  -strategies: List~MovementStrategy~
-  +addMovementStrategy(strategy: MovementStrategy): void
-  +removeMovementStrategy(strategy: MovementStrategy): void
-  +updateMovement(deltaTime: float): void
+namespace Game_Traffic_Event_UI {
+  class TrafficLightSystem {
+    -lights: List~LaneTrafficLight~
+    -previousGreenState: Map~TrafficLightController, Boolean~
+    +initialize(definitions: List~TrafficLightDefinition~, entityManager: EntityManager, eventBus: EventBus): void
+    +tick(delta: float): void
+    +scoreForLaneEntry(previousLaneIndex: int, currentLaneIndex: int): int
+    +clear(entityManager: EntityManager): void
+  }
+
+  class TrafficLightController {
+    -controlledLaneIndex: int
+    -switchInterval: float
+    -currentPhase: TrafficLightPhase
+    +TrafficLightController(controlledLaneIndex: int, switchInterval: float, redScoreDelta: int, greenScoreDelta: int)
+    +tick(delta: float): void
+    +scoreForLaneEntry(previousLaneIndex: int, currentLaneIndex: int): int
+    +isRed(): boolean
+    +isGreen(): boolean
+  }
+
+  class TrafficLightPhase {
+    <<interface>>
+    +getDuration(controller: TrafficLightController): float
+    +getLaneEntryScoreDelta(controller: TrafficLightController): int
+    +nextPhase(): TrafficLightPhase
+    +getName(): String
+  }
+
+  class RedPhase
+  class GreenPhase
+
+  class CrossyLaneAudioController {
+    -audioManager: AudioManager
+    -eventBus: EventBus
+    +subscribe(): void
+    +unsubscribe(): void
+    +playMenuMusic(): void
+    +playGameplayMusic(): void
+    +playWinMusic(): void
+    +playLoseMusic(): void
+  }
+
+  class GameplayHudOverlay
+  class MenuUiTheme
+
+  class CrossyLaneSession {
+    -playerWon: boolean
+    -score: int
+    -lives: int
+    -levelNumber: int
+    -customLevel: LevelDefinition
+    +reset(): void
+    +isCustomMode(): boolean
+    +getCustomLevel(): LevelDefinition
+  }
+
+  class LaneLayout
+
+  class PlayerHitEvent
+  class GoalReachedEvent
+  class CoinCollectedEvent
+  class TrafficLightChangedEvent
 }
 
-class MovementStrategy {
-  <<interface>>
-  +applyMovement(transform: TransformComponent, physics: PhysicsComponent, deltaTime: float): void
-}
-
-class IOManager {
-  -input: InputManager
-  -output: OutputManager
-  +getInput(): InputManager
-  +getOutput(): OutputManager
-}
-
-class InputManager {
-  +isKeyPressed(key: int): boolean
-  +isKeyJustPressed(key: int): boolean
-  +getMousePosition(): Vector2
-}
-
-class OutputManager {
-  +begin(): void
-  +draw(transform: TransformComponent, renderable: Component): void
-  +end(): void
-  +dispose(): void
-}
-
-%% --- Relationships ---
-
-GameMaster "1" *-- "1" SceneManager
-IManager <|.. SceneManager
 IManager <|.. EntityManager
-IManager <|.. CollisionManager
 IManager <|.. MovementManager
+IManager <|.. CollisionManager
 IManager <|.. IOManager
 
-SceneManager "1" *-- "*" Scene : owns
-GameMaster ..> SceneManager : runs
-
-Scene "1" *-- "1" EntityManager : owns
-Scene "1" *-- "1" CollisionManager : owns
-Scene "1" *-- "1" MovementManager : owns
-Scene "1" *-- "1" IOManager : owns
-
-EntityManager "1" *-- "*" Entity : manages
-Entity "1" *-- "*" Component : contains
+IScene <|.. MainMenuScene
+IScene <|.. InstructionScene
+IScene <|.. CustomSetupScene
+IScene <|.. GameplayScene
+IScene <|.. PauseScene
+IScene <|.. ResultScene
+IScene <|.. SettingsScene
 
 Component <|-- TransformComponent
 Component <|-- PhysicsComponent
+Component <|-- MovementComponent
 Component <|-- CollisionComponent
+Component <|-- InputComponent
+Component <|-- TextureComponent
+Component <|-- RenderableComponent
 
+MovementStrategy <|.. BasicMovementStrategy
+MovementStrategy <|.. PlayerGridMovementStrategy
+
+TrafficLightPhase <|.. RedPhase
+TrafficLightPhase <|.. GreenPhase
+
+GameEvent <|.. PlayerHitEvent
+GameEvent <|.. GoalReachedEvent
+GameEvent <|.. CoinCollectedEvent
+GameEvent <|.. TrafficLightChangedEvent
+
+Entity <|-- PlayerEntity
+Entity <|-- CarEntity
+Entity <|-- GoalZoneEntity
+Entity <|-- GrassZoneEntity
+Entity <|-- LaneMarkerEntity
+Entity <|-- CoinEntity
+Entity <|-- TrafficLightEntity
+Entity <|-- ZebraCrossingEntity
+Entity <|-- SafeStopZoneEntity
+
+GameMaster --> EngineCore : boots
+GameMaster --> CrossyLaneSession : stores
+GameMaster --> CrossyLaneAudioController : controls
+GameMaster --> LevelRegistry : loads
+GameMaster --> CrossyLaneSceneKey : starts
+
+EngineCore *-- EntityManager
+EngineCore *-- MovementManager
+EngineCore *-- CollisionManager
+EngineCore *-- IOManager
+EngineCore *-- EventBus
+EngineCore *-- SceneManager
+
+SceneManager o-- IScene : manages
+EntityManager o-- Entity : tracks
+Entity *-- Component : owns
+
+MovementManager --> EntityManager : queries
+MovementManager o-- MovementStrategy : applies
+MovementComponent --> MovementStrategy : delegates
+
+CollisionManager --> EntityManager : queries
 CollisionManager ..> CollisionComponent : processes
-CollisionComponent ..> Rectangle : uses
+CollisionManager ..> CollisionInfo : computes
+CollisionComponent ..> Rectangle : bounds
 CollisionComponent ..> Vector2 : uses
-CollisionComponent ..> TransformComponent : uses
-MovementManager ..> TransformComponent : processes
-MovementManager ..> PhysicsComponent : processes
-MovementManager "1" o-- "*" MovementStrategy : uses
 
-IOManager "1" *-- "1" InputManager
-IOManager "1" *-- "1" OutputManager
+IOManager *-- InputManager
+IOManager *-- MouseInput
+IOManager *-- OutputManager
+IOManager *-- FontManager
+IOManager *-- AudioManager
+InputManager --> EntityManager : reads
+InputComponent --> Command : binds
+
+EventBus o-- EventListener : notifies
+
+LevelRegistry o-- LevelDefinition : provides
+LevelDefinition *-- LaneDefinition
+LevelDefinition *-- TrafficLightDefinition
+CrossyLaneSession --> LevelDefinition : optional custom
+
+GameplayScene --> SceneManager : navigates
+GameplayScene --> EntityManager : world
+GameplayScene --> IOManager : io
+GameplayScene --> EventBus : listens
+GameplayScene --> CrossyLaneSession : persists
+GameplayScene --> LevelRegistry : resolves
+GameplayScene --> CrossyLaneAudioController : music
+GameplayScene *-- TrafficLightSystem
+GameplayScene *-- GameplayHudOverlay
+GameplayScene ..> EntityFactory : spawns
+GameplayScene ..> LaneLayout : layout
+GameplayScene ..> CarWrapSystem : wraps
+
+TrafficLightSystem o-- TrafficLightController : manages
+TrafficLightSystem ..> TrafficLightEntity : visual
+TrafficLightSystem ..> EntityManager : registers
+TrafficLightSystem ..> EventBus : publishes
+TrafficLightController --> TrafficLightPhase : state
+
+EntityFactory ..> PlayerEntity : creates
+EntityFactory ..> CarEntity : creates
+EntityFactory ..> GoalZoneEntity : creates
+EntityFactory ..> GrassZoneEntity : creates
+EntityFactory ..> CoinEntity : creates
+EntityFactory ..> TrafficLightEntity : creates
+EntityFactory ..> ZebraCrossingEntity : creates
+EntityFactory ..> SafeStopZoneEntity : creates
+
+PlayerEntity *-- PlayerGridMovementStrategy
+PlayerEntity --> EventBus : publishes
+PlayerEntity ..> PlayerHitEvent : emits
+PlayerEntity ..> GoalReachedEvent : emits
+
+CrossyLaneAudioController --> AudioManager : wraps
+CrossyLaneAudioController --> EventBus : subscribes
+
+EngineLayer ..> EngineCore : engine layer
+CrossyLaneLayer ..> GameMaster : game layer

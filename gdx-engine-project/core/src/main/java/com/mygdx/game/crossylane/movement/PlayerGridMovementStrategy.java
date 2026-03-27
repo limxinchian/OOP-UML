@@ -1,8 +1,8 @@
 package com.mygdx.game.crossylane.movement;
 
 import com.mygdx.game.crossylane.config.CrossyLaneConfig;
-import com.mygdx.game.engine.ecs.PhysicsComponent;
-import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.entity.PhysicsComponent;
+import com.mygdx.game.engine.entity.TransformComponent;
 import com.mygdx.game.engine.math.MathUtil;
 import com.mygdx.game.engine.movement.MovementStrategy;
 

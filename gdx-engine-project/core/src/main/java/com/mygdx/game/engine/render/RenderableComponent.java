@@ -1,6 +1,6 @@
 package com.mygdx.game.engine.render;
 
-import com.mygdx.game.engine.ecs.Component;
+import com.mygdx.game.engine.entity.Component;
 
 /**
  * Minimal render metadata for OutputManager to draw.

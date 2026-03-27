@@ -2,7 +2,7 @@ package com.mygdx.game.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.mygdx.game.GameMaster;
+import com.mygdx.game.crossylane.app.GameMaster;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {

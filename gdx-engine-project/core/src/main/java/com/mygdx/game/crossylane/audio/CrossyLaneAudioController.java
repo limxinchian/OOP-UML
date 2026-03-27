@@ -1,8 +1,8 @@
 package com.mygdx.game.crossylane.audio;
 
-import com.mygdx.game.crossylane.events.CoinCollectedEvent;
-import com.mygdx.game.crossylane.events.PlayerHitEvent;
-import com.mygdx.game.crossylane.events.TrafficLightChangedEvent;
+import com.mygdx.game.crossylane.event.CoinCollectedEvent;
+import com.mygdx.game.crossylane.event.PlayerHitEvent;
+import com.mygdx.game.crossylane.event.TrafficLightChangedEvent;
 import com.mygdx.game.engine.audio.AudioManager;
 import com.mygdx.game.engine.event.EventBus;
 import com.mygdx.game.engine.event.EventListener;

@@ -11,12 +11,12 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.mygdx.game.crossylane.config.TrafficLightDefinition;
-import com.mygdx.game.crossylane.entities.EntityFactory;
-import com.mygdx.game.crossylane.entities.additional_entity.TrafficLightEntity;
-import com.mygdx.game.crossylane.events.TrafficLightChangedEvent;
-import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.crossylane.entity.EntityFactory;
+import com.mygdx.game.crossylane.entity.TrafficLightEntity;
+import com.mygdx.game.crossylane.event.TrafficLightChangedEvent;
+import com.mygdx.game.engine.entity.TransformComponent;
 import com.mygdx.game.engine.event.EventBus;
-import com.mygdx.game.engine.managers.EntityManager;
+import com.mygdx.game.engine.entity.EntityManager;
 
 /**
  * Manages the traffic lights for the current level.

@@ -2,9 +2,9 @@ package com.mygdx.game.engine.movement;
 
 import java.util.List;
 
-import com.mygdx.game.engine.ecs.Entity;
-import com.mygdx.game.engine.ecs.PhysicsComponent;
-import com.mygdx.game.engine.ecs.TransformComponent;
+import com.mygdx.game.engine.entity.Entity;
+import com.mygdx.game.engine.entity.PhysicsComponent;
+import com.mygdx.game.engine.entity.TransformComponent;
 
 /**
  * Engine-level screen-edge wrapping for any entity with Transform + Physics.

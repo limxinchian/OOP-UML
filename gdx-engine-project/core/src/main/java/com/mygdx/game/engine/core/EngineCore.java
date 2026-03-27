@@ -1,10 +1,10 @@
 package com.mygdx.game.engine.core;
 
 import com.mygdx.game.engine.event.EventBus;
-import com.mygdx.game.engine.managers.CollisionManager;
-import com.mygdx.game.engine.managers.EntityManager;
-import com.mygdx.game.engine.managers.IOManager;
-import com.mygdx.game.engine.managers.MovementManager;
+import com.mygdx.game.engine.collision.CollisionManager;
+import com.mygdx.game.engine.entity.EntityManager;
+import com.mygdx.game.engine.io.IOManager;
+import com.mygdx.game.engine.movement.MovementManager;
 import com.mygdx.game.engine.scene.IScene;
 import com.mygdx.game.engine.scene.SceneManager;
 
